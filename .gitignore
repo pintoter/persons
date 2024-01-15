@@ -1,0 +1,11 @@
+# Binaries
+.bin
+
+# Environment variables
+.env
+
+# Idea
+.idea
+
+# Debug
+.vscode

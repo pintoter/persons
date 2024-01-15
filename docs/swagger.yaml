@@ -1,0 +1,397 @@
+definitions:
+  entity.Note:
+    properties:
+      date:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+      title:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  transport.createNoteInput:
+    properties:
+      date:
+        maxLength: 10
+        minLength: 9
+        type: string
+      description:
+        type: string
+      status:
+        type: string
+      title:
+        maxLength: 80
+        minLength: 1
+        type: string
+    required:
+    - title
+    type: object
+  transport.errorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  transport.getNoteResponse:
+    properties:
+      note:
+        $ref: '#/definitions/entity.Note'
+    type: object
+  transport.getNotesRequest:
+    properties:
+      date:
+        type: string
+      limit:
+        type: integer
+      status:
+        type: string
+    type: object
+  transport.getNotesResponse:
+    properties:
+      notes:
+        items:
+          $ref: '#/definitions/entity.Note'
+        type: array
+    type: object
+  transport.signInInput:
+    properties:
+      login:
+        maxLength: 64
+        minLength: 2
+        type: string
+      password:
+        maxLength: 64
+        minLength: 8
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  transport.signUpInput:
+    properties:
+      email:
+        maxLength: 64
+        minLength: 6
+        type: string
+      login:
+        maxLength: 64
+        minLength: 2
+        type: string
+      password:
+        maxLength: 64
+        minLength: 8
+        type: string
+    required:
+    - email
+    - login
+    - password
+    type: object
+  transport.successCUDResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  transport.tokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  transport.updateNoteInput:
+    properties:
+      description:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /api/v1/note:
+    post:
+      consumes:
+      - application/json
+      description: create note
+      parameters:
+      - description: note info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/transport.createNoteInput'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/transport.successCUDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Create note
+      tags:
+      - notes
+  /api/v1/note/{id}:
+    delete:
+      description: Delete note by id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.successCUDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Delete note
+      tags:
+      - notes
+    get:
+      description: Get note by id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.getNoteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Get note by id
+      tags:
+      - notes
+    patch:
+      consumes:
+      - application/json
+      description: update note by id
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: updating params
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/transport.updateNoteInput'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/transport.successCUDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Update note
+      tags:
+      - notes
+  /api/v1/notes:
+    delete:
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.successCUDResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Delete notes
+      tags:
+      - notes
+    get:
+      description: Get all notes
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.getNotesResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Get all notes
+      tags:
+      - notes
+  /api/v1/notes/{page}:
+    post:
+      consumes:
+      - application/json
+      description: Get notes with filter
+      parameters:
+      - description: page
+        in: path
+        name: page
+        required: true
+        type: integer
+      - description: searching params
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/transport.getNotesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.getNotesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Get notes with filter
+      tags:
+      - notes
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh tokens
+      parameters:
+      - description: input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/transport.signInInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.tokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: User Refresh tokens
+      tags:
+      - auth
+  /auth/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Sign In
+      parameters:
+      - description: input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/transport.signInInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.tokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Sign In
+      tags:
+      - auth
+  /auth/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Sign Up
+      parameters:
+      - description: input
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/transport.signUpInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/transport.successCUDResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/transport.errorResponse'
+      summary: Sign Up
+      tags:
+      - auth
+swagger: "2.0"
