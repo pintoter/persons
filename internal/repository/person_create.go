@@ -1,4 +1,4 @@
-package dbrepo
+package repository
 
 import (
 	"context"

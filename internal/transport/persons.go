@@ -2,66 +2,64 @@ package transport
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/pintoter/persons/internal/entity"
+	"github.com/pintoter/persons/internal/service"
 )
 
-// @Summary Create note
-// @Description create note
-// @Tags notes
+// @Summary Create person
+// @Description Create person
+// @Tags persons
 // @Accept json
 // @Produce json
-// @Param input body createNoteInput true "note info"
-// @Success 201 {object} successCUDResponse
+// @Param input body createPersonInput true "Person's information"
+// @Success 201 {object} successResponse
 // @Failure 400 {object} errorResponse
-// @Failure 409 {object} errorResponse
 // @Failure 500 {object} errorResponse
-// @Router /api/v1/note [post]
-func (h *Handler) createNote(w http.ResponseWriter, r *http.Request) {
-	var input createNoteInput
+// @Router /api/v1/persons [post]
+func (h *Handler) createPerson(w http.ResponseWriter, r *http.Request) {
+	var input createPersonInput
 	if err := input.Set(r); err != nil {
 		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidInput.Error()})
 		return
 	}
 
 	id, err := h.service.Create(r.Context(), entity.Person{
-		Name:  input,
-		Title: input.Title,
+		Name:       input.Name,
+		Surname:    input.Surname,
+		Patronymic: input.Patronymic,
 	})
 
 	if err != nil {
-		if errors.Is(err, entity.ErrNoteExists) {
-			renderJSON(w, r, http.StatusConflict, errorResponse{err.Error()})
-		} else {
-			renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
-		}
+		renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
 		return
 	}
 
-	renderJSON(w, r, http.StatusCreated, successCUDResponse{"note created successfully"})
+	renderJSON(w, r, http.StatusCreated, successResponse{fmt.Sprintf("created new person ID: %d", id)})
 }
 
-// @Summary Get note by id
-// @Description Get note by id
-// @Tags notes
+// @Summary Get person by id
+// @Description Get person by id
+// @Tags persons
 // @Produce json
 // @Param id path int true "id"
-// @Success 200 {object} getNoteResponse
+// @Success 200 {object} getPersonResponse
 // @Failure 400 {object} errorResponse
 // @Failure 404 {object} errorResponse
 // @Failure 500 {object} errorResponse
-// @Router /api/v1/note/{id} [get]
-func (h *Handler) getNote(w http.ResponseWriter, r *http.Request) {
+// @Router /api/v1/persons/{id} [get]
+func (h *Handler) getPerson(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	if id == 0 {
-		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidId.Error()})
+		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidInput.Error()})
 		return
 	}
 
-	note, err := h.service.GetPerson(r.Context(), id)
+	person, err := h.service.GetPerson(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, entity.ErrPersonNotExists) {
 			renderJSON(w, r, http.StatusNotFound, errorResponse{entity.ErrPersonNotExists.Error()})
@@ -71,91 +69,112 @@ func (h *Handler) getNote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderJSON(w, r, http.StatusOK, getNoteResponse{Note: note})
+	renderJSON(w, r, http.StatusOK, getPersonResponse{Person: person})
 }
 
-// @Summary Get all notes
-// @Description Get all notes
-// @Tags notes
+// @Summary Get all persons
+// @Description Get all persons
+// @Tags persons
 // @Produce json
-// @Success 200 {object} getNotesResponse
+// @Param name query string false "name"
+// @Param surname query string false "surname"
+// @Param patronymic query string false "patronymic"
+// @Param age query int false "age"
+// @Param gender query string false "gender"
+// @Param nationalize query string false "nationalize"
+// @Param limit query int false "limit"
+// @Param page query int false "page"
+// @Success 200 {object} getPersonsResponse
 // @Failure 500 {object} errorResponse
-// @Router /api/v1/notes [get]
-func (h *Handler) getNotes(w http.ResponseWriter, r *http.Request) {
-	notes, err := h.service.GetPersons(r.Context(), r.Context().Value("user_id").(int))
+// @Router /api/v1/persons [get]
+func (h *Handler) getPersons(w http.ResponseWriter, r *http.Request) {
+	var input getPersonsRequest
+
+	if err := input.Set(r); err != nil {
+		renderJSON(w, r, http.StatusBadRequest, errorResponse{err.Error()})
+		return
+	}
+
+	data := service.RequestFilters{
+		Name:        &input.Name,
+		Surname:     &input.Surname,
+		Patronymic:  &input.Patronymic,
+		Age:         &input.Age,
+		Gender:      &input.Gender,
+		Nationalize: &input.Nationalize,
+		Limit:       int64(input.Limit),
+		Offset:      int64((input.Page - 1) * input.Limit),
+	}
+
+	persons, err := h.service.GetPersons(r.Context(), &data)
 	if err != nil {
 		renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
 		return
 	}
 
-	renderJSON(w, r, http.StatusOK, getNotesResponse{Notes: notes})
+	renderJSON(w, r, http.StatusOK, getPersonsResponse{Persons: persons})
 }
 
-// @Summary Update note
-// @Description update note by id
-// @Tags notes
+// @Summary Update persons
+// @Description update person by id
+// @Tags persons
 // @Accept json
 // @Produce json
 // @Param id path int true "id"
-// @Param input body updateNoteInput true "updating params"
-// @Success 202 {object} successCUDResponse
+// @Param input body updatePersonInput true "updating params"
+// @Success 202 {object} successResponse
 // @Failure 400 {object} errorResponse
 // @Failure 500 {object} errorResponse
-// @Router /api/v1/note/{id} [patch]
-func (h *Handler) updateNote(w http.ResponseWriter, r *http.Request) {
-	var input updateNoteInput
+// @Router /api/v1/persons/{id} [patch]
+func (h *Handler) updatePerson(w http.ResponseWriter, r *http.Request) {
+	var input updatePersonInput
 	var err error
 	if err = input.Set(r); err != nil {
 		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidInput.Error()})
 		return
 	}
 
-	userId, ok := r.Context().Value("user_id").(int)
-	if !ok {
-		renderJSON(w, r, http.StatusInternalServerError, errorResponse{"bad userID"})
-		return
+	data := &service.UpdateParams{
+		Name:        &input.Name,
+		Surname:     &input.Surname,
+		Patronymic:  &input.Patronymic,
+		Age:         &input.Age,
+		Gender:      &input.Gender,
+		Nationalize: &input.Nationalize,
 	}
 
-	err = h.service.UpdateNote(r.Context(), input.ID, input.Title, input.Description, input.Status, userId)
+	err = h.service.Update(r.Context(), input.ID, data)
 	if err != nil {
-		if errors.Is(err, entity.ErrNoteNotExists) {
-			renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrNoteNotExists.Error()})
-		} else if errors.Is(err, entity.ErrNoteExists) {
-			renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrNoteExists.Error() + " with title: " + input.Title})
+		if errors.Is(err, entity.ErrPersonNotExists) {
+			renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrPersonNotExists.Error()})
 		} else {
 			renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
 		}
 		return
 	}
 
-	renderJSON(w, r, http.StatusAccepted, successCUDResponse{Message: "note updated successfully"})
+	renderJSON(w, r, http.StatusAccepted, successResponse{Message: "note updated successfully"})
 }
 
-// @Summary Delete note
-// @Description Delete note by id
+// @Summary Delete person
+// @Description Delete person by id
 // @Tags notes
 // @Produce json
 // @Param id path int true "id"
-// @Success 200 {object} successCUDResponse
+// @Success 200 {object} successResponse
 // @Failure 400 {object} errorResponse
 // @Failure 500 {object} errorResponse
-// @Router /api/v1/note/{id} [delete]
-func (h *Handler) deleteNote(w http.ResponseWriter, r *http.Request) {
+// @Router /api/v1/person/{id} [delete]
+func (h *Handler) deletePerson(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	if id == 0 {
-		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidId.Error()})
+		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidQueryId.Error()})
 		return
 	}
 
-	userId, ok := r.Context().Value("user_id").(int)
-	if !ok {
-		renderJSON(w, r, http.StatusInternalServerError, errorResponse{"bad userID"})
-		return
-	}
-
-	if err := h.service.DeleteNoteById(r.Context(), id, userId); err != nil {
-		if errors.Is(err, entity.ErrNoteExists) {
-			renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrNoteExists.Error()})
+	if err := h.service.Delete(r.Context(), id); err != nil {
+		if errors.Is(err, entity.ErrPersonNotExists) {
+			renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrPersonNotExists.Error()})
 			return
 		} else {
 			renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
@@ -163,5 +182,5 @@ func (h *Handler) deleteNote(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	renderJSON(w, r, http.StatusOK, successCUDResponse{Message: "note deleted succesfully"})
+	renderJSON(w, r, http.StatusOK, successResponse{Message: "note deleted succesfully"})
 }

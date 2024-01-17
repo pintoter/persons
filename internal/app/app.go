@@ -6,17 +6,17 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/pintoter/persons/internal/repository/dbrepo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
 	_ "github.com/pintoter/persons/docs"
+	"github.com/pintoter/persons/internal/client"
 	"github.com/pintoter/persons/internal/config"
 	migrations "github.com/pintoter/persons/internal/database"
+	"github.com/pintoter/persons/internal/repository"
 	"github.com/pintoter/persons/internal/server"
 	"github.com/pintoter/persons/internal/service"
 	"github.com/pintoter/persons/internal/transport"
-	"github.com/pintoter/persons/pkg/client"
 	"github.com/pintoter/persons/pkg/database/postgres"
 	"github.com/pintoter/persons/pkg/logger"
 )
@@ -28,7 +28,7 @@ import (
 // @contact.name   				Vlad Yurasov
 // @contact.email  				meine23@yandex.ru
 
-// @host      					localhost:8080
+// @host      					persons-app:8080
 // @BasePath  					/api/v1
 
 func Run() {
@@ -49,7 +49,7 @@ func Run() {
 		logger.FatalKV(ctx, "Failed connect database", "err", err)
 	}
 
-	repo := dbrepo.New(db)
+	repo := repository.New(db)
 
 	httpClient := client.New(&cfg.Client)
 

@@ -1,19 +1,19 @@
 package repository
 
 import (
-	"context"
-
-	"github.com/pintoter/persons/internal/entity"
+	"database/sql"
 )
 
-type PersonRepository interface {
-	Create(ctx context.Context, person entity.Person) (int, error)
-	GetPerson(ctx context.Context, id int) (entity.Person, error)
-	GetPersons(ctx context.Context, limit, offset int) ([]entity.Person, error)
-	Update(ctx context.Context, id int) error
-	Delete(ctx context.Context, id int) error
+const (
+	persons = "persons"
+)
+
+type DBRepo struct {
+	db *sql.DB
 }
 
-type Repository interface {
-	PersonRepository
+func New(db *sql.DB) *DBRepo {
+	return &DBRepo{
+		db: db,
+	}
 }

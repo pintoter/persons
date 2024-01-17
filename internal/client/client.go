@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	ageURL         = "https://api.agify.io/?name=%s"
-	genderURL      = "https://api.genderize.io/?name=%s"
-	nationalizeURL = "https://api.nationalize.io/?name=%s"
+	ageURL         = "https://api.agify.io/"
+	genderURL      = "https://api.genderize.io/"
+	nationalizeURL = "https://api.nationalize.io/"
+	pathParamName  = "?name=%s"
 )
 
 type Client struct {
@@ -35,8 +36,8 @@ type getAgeContract struct {
 	Age int `json:"age"`
 }
 
-func (c *Client) GetAge(name string) (int, error) {
-	data, err := c.requestExecutor(fmt.Sprintf(ageURL, name))
+func (c *Client) GenerateAge(ctx context.Context, name string) (int, error) {
+	data, err := c.requestExecutor(ctx, fmt.Sprintf(ageURL+pathParamName, name))
 	if err != nil {
 		return 0, err
 	}
@@ -53,8 +54,8 @@ type getGenderContract struct {
 	Gender string `json:"gender"`
 }
 
-func (c *Client) GetGender(name string) (string, error) {
-	data, err := c.requestExecutor(fmt.Sprintf(genderURL, name))
+func (c *Client) GenerateGender(ctx context.Context, name string) (string, error) {
+	data, err := c.requestExecutor(ctx, fmt.Sprintf(genderURL+pathParamName, name))
 	if err != nil {
 		return "", err
 	}
@@ -68,11 +69,13 @@ func (c *Client) GetGender(name string) (string, error) {
 }
 
 type getNationalizeContract struct {
-	Nationalize string `json:"nationalize"`
+	Country []struct {
+		Country_id string `json:"country_id"`
+	} `json:"country"`
 }
 
-func (c *Client) GetNationalize(name string) (string, error) {
-	data, err := c.requestExecutor(fmt.Sprintf(nationalizeURL, name))
+func (c *Client) GenerateNationalize(ctx context.Context, name string) (string, error) {
+	data, err := c.requestExecutor(ctx, fmt.Sprintf(nationalizeURL+pathParamName, name))
 	if err != nil {
 		return "", err
 	}
@@ -82,12 +85,15 @@ func (c *Client) GetNationalize(name string) (string, error) {
 		return "", err
 	}
 
-	return contract.Nationalize, nil
+	if len(contract.Country) == 0 {
+		return "", err
+	}
+
+	return contract.Country[0].Country_id, nil
 }
 
-func (c *Client) requestExecutor(url string) ([]byte, error) {
-	// using context.Background() because Client already got parameter Timeout in constructor
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+func (c *Client) requestExecutor(ctx context.Context, url string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}

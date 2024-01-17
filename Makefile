@@ -1,12 +1,14 @@
 include .env
 
-ifeq ($(version), debug)
-	BUILDER = go mod download && CGO_ENABLED=0 GOOS=linux go build -gcflags "all=-N -l" -o ./.bin/todo-app ./cmd/app/main.go
-	DOCKER_COMPOSE_FILE = -f docker-compose.debug.yml
-else 
-	BUILDER = go mod download && CGO_ENABLED=0 GOOS=linux go build -o ./.bin/todo-app ./cmd/app/main.go
-	DOCKER_COMPOSE_FILE = -f docker-compose.yml
-endif
+# ifeq ($(version), debug)
+# 	BUILDER = go mod download && CGO_ENABLED=0 GOOS=linux go build -gcflags "all=-N -l" -o ./.bin/todo-app ./cmd/app/main.go
+# 	DOCKER_COMPOSE_FILE = -f docker-compose.debug.yml
+# else 
+# 	BUILDER = go mod download && CGO_ENABLED=0 GOOS=linux go build -o ./.bin/todo-app ./cmd/app/main.go
+# 	DOCKER_COMPOSE_FILE = -f docker-compose.yml
+# endif
+BUILDER = go mod download && CGO_ENABLED=0 GOOS=linux go build -o ./.bin/persons-app ./cmd/app/main.go
+DOCKER_COMPOSE_FILE = -f docker-compose.yml
 
 .DEFAULT_GOAL = run
 
@@ -19,7 +21,7 @@ build:
 
 .PHONY: run
 run: build
-	docker-compose $(DOCKER_COMPOSE_FILE) up --remove-orphans todo-app
+	docker-compose $(DOCKER_COMPOSE_FILE) up --remove-orphans persons-app
 
 .PHONY: rebuild
 rebuild: build

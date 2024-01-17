@@ -13,7 +13,7 @@ db:
 
 project:
   name: persons-app
-  level: info
+  level: debug
 
 client:
   timeout: 5s

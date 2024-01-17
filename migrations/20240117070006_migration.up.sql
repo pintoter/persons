@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS persons (
   name VARCHAR(80) NOT NULL,
   surname VARCHAR(80) NOT NULL,
   patronymic VARCHAR(80),
+  age INT NOT NULL,
   gender gender_type,
   nationalize VARCHAR(80) NOT NULL
 );

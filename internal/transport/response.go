@@ -2,21 +2,21 @@ package transport
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
-	"github.com/pintoter/todo-list/internal/entity"
+	"github.com/pintoter/persons/internal/entity"
+	"github.com/pintoter/persons/pkg/logger"
 )
 
-type getNoteResponse struct {
-	Note entity.Note `json:"note"`
+type getPersonResponse struct {
+	Person entity.Person `json:"person"`
 }
 
-type getNotesResponse struct {
-	Notes []entity.Note `json:"notes"`
+type getPersonsResponse struct {
+	Persons []entity.Person `json:"person"`
 }
 
-type successCUDResponse struct {
+type successResponse struct {
 	Message string `json:"message"`
 }
 
@@ -25,7 +25,7 @@ type errorResponse struct {
 }
 
 func renderJSON(w http.ResponseWriter, r *http.Request, code int, data any) {
-	log.Printf("[Response] [%s] %s - Status code: [%d]", r.Method, r.URL.Path, code)
+	logger.DebugKV(r.Context(), "New response", "Code", code, "Response", data)
 	resp, _ := json.MarshalIndent(data, "", "    ")
 
 	w.Header().Set("Content-Type", "application/json")

@@ -1,14 +1,13 @@
-# todo-list
+# persons
 
 ## Examples
 
 [![Golang](https://img.shields.io/badge/Go-v1.21-EEEEEE?logo=go&logoColor=white&labelColor=00ADD8)](https://go.dev/)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 <div align="center">
-    <h1>TO-DO List</h1>
+    <h1>Persons</h1>
     <h5>
-        The service written in Go for plan own daily tasks
+        The service written in Go for store information about persons
     </h5>
 </div>
 

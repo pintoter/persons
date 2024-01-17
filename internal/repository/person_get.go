@@ -1,16 +1,16 @@
-package dbrepo
+package repository
 
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pintoter/persons/internal/entity"
+	"github.com/pintoter/persons/internal/service"
 )
 
 func getPersonBuilder(id int) (string, []interface{}, error) {
-	builder := sq.Select("id", "user_id", "title", "description", "date", "status").
+	builder := sq.Select("id", "name", "surname", "patronymic", "age", "gender", "nationalize").
 		From(persons).
 		Where(sq.Eq{"id": id}).
 		PlaceholderFormat(sq.Dollar)
@@ -51,33 +51,42 @@ func (r *DBRepo) GetPerson(ctx context.Context, id int) (entity.Person, error) {
 	return person, tx.Commit()
 }
 
-/*-----------------------------
-					GET ALL NOTES
- ----------------------------- */
-
-func getNotesBuilder(limit, offset int) (string, []interface{}, error) {
-	builder := sq.Select("id", "user_id", "title", "description", "date", "status").
+func getNotesBuilder(data *service.RequestFilters) (string, []interface{}, error) {
+	builder := sq.Select("id", "name", "surname", "patronymic", "age", "gender", "nationalize").
 		From(persons).
 		OrderBy("id ASC").
-		Where(sq.Eq{"user_id": userId}).
 		PlaceholderFormat(sq.Dollar)
 
-	if status != "" {
-		builder = builder.Where(sq.Eq{"status": status})
+	if data.Name != nil {
+		builder = builder.Where(sq.Eq{"name": *(data.Name)})
 	}
 
-	if !date.Equal(time.Time{}) {
-		builder = builder.Where(sq.Eq{"date": date})
+	if data.Surname != nil {
+		builder = builder.Where(sq.Eq{"surname": *(data.Surname)})
 	}
 
-	if limit != 0 || offset != 0 {
-		builder = builder.Limit(uint64(limit)).Offset(uint64(offset))
+	if data.Patronymic != nil {
+		builder = builder.Where(sq.Eq{"patronymic": *(data.Patronymic)})
 	}
+
+	if data.Age != nil {
+		builder = builder.Where(sq.Eq{"age": *(data.Age)})
+	}
+
+	if data.Gender != nil {
+		builder = builder.Where(sq.Eq{"gender": *(data.Gender)})
+	}
+
+	if data.Nationalize != nil {
+		builder = builder.Where(sq.Eq{"nationalize": *(data.Nationalize)})
+	}
+
+	builder = builder.Limit(uint64(data.Limit)).Offset(uint64(data.Offset))
 
 	return builder.ToSql()
 }
 
-func (r *DBRepo) GetPersons(ctx context.Context, limit, offset int) ([]entity.Person, error) {
+func (r *DBRepo) GetPersons(ctx context.Context, data *service.RequestFilters) ([]entity.Person, error) {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted,
 		ReadOnly:  false,
@@ -87,7 +96,7 @@ func (r *DBRepo) GetPersons(ctx context.Context, limit, offset int) ([]entity.Pe
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	query, args, err := getNotesBuilder(0, 0)
+	query, args, err := getNotesBuilder(data)
 	if err != nil {
 		return nil, err
 	}

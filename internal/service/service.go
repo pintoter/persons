@@ -1,25 +1,35 @@
 package service
 
 import (
-	"github.com/pintoter/persons/internal/repository"
+	"context"
+
+	"github.com/pintoter/persons/internal/entity"
 )
 
 //go:generate mockgen -source=service.go -destination=mocks/mock.go
 
-type Client interface {
-	GetAge(name string) (int, error)
-	GetGender(name string) (string, error)
-	GetNationalize(name string) (string, error)
+type Repository interface {
+	Create(ctx context.Context, person entity.Person) (int, error)
+	GetPerson(ctx context.Context, id int) (entity.Person, error)
+	GetPersons(ctx context.Context, filters *RequestFilters) ([]entity.Person, error)
+	Update(ctx context.Context, id int, params *UpdateParams) error
+	Delete(ctx context.Context, id int) error
+}
+
+type Generator interface {
+	GenerateAge(ctx context.Context, name string) (int, error)
+	GenerateGender(ctx context.Context, name string) (string, error)
+	GenerateNationalize(ctx context.Context, name string) (string, error)
 }
 
 type Service struct {
-	repo   repository.Repository
-	client Client
+	repo Repository
+	gen  Generator
 }
 
-func New(repo repository.Repository, client Client) *Service {
+func New(repo Repository, gen Generator) *Service {
 	return &Service{
-		repo:   repo,
-		client: client,
+		repo: repo,
+		gen:  gen,
 	}
 }

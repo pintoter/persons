@@ -1,4 +1,4 @@
-package dbrepo
+package repository
 
 import (
 	"context"
@@ -7,27 +7,15 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-func updateBuilder(id int, title, description, status string) (string, []interface{}, error) {
-	builder := sq.Update(persons).
+func getDeleteByIdQuery(id int) (string, []interface{}, error) {
+	builder := sq.Delete(persons).
 		Where(sq.Eq{"id": id}).
 		PlaceholderFormat(sq.Dollar)
-
-	if title != "" {
-		builder = builder.Set("title", title)
-	}
-
-	if description != "" {
-		builder = builder.Set("description", description)
-	}
-
-	if status != "" {
-		builder = builder.Set("status", status)
-	}
 
 	return builder.ToSql()
 }
 
-func (r *DBRepo) Update(ctx context.Context, id int) error {
+func (r *DBRepo) Delete(ctx context.Context, id int) error {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted,
 		ReadOnly:  false,
@@ -37,7 +25,7 @@ func (r *DBRepo) Update(ctx context.Context, id int) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	query, args, err := updateBuilder(id)
+	query, args, err := getDeleteByIdQuery(id)
 	if err != nil {
 		return err
 	}

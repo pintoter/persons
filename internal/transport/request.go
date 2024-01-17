@@ -4,111 +4,121 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/pintoter/todo-list/internal/entity"
+
+	"github.com/pintoter/persons/internal/entity"
+	"github.com/pintoter/persons/pkg/logger"
 )
 
-type createNoteInput struct {
-	Title         string    `json:"title" binding:"required,min=1,max=80"`
-	Description   string    `json:"description,omitempty"`
-	Date          string    `json:"date,omitempty" binding:"min=9,max=10"`
-	DateFormatted time.Time `json:"-"`
-	Status        string    `json:"status,omitempty"`
+type createPersonInput struct {
+	Name       string `json:"name" binding:"required,min=2,max=64"`
+	Surname    string `json:"surname" binding:"required,min=2,max=64"`
+	Patronymic string `json:"patronymic,omitempty"`
 }
 
-func (n *createNoteInput) Set(r *http.Request) error {
+func (p *createPersonInput) Set(r *http.Request) error {
 	var err error
-	if err = json.NewDecoder(r.Body).Decode(n); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(p); err != nil {
 		return entity.ErrInvalidInput
-	}
-
-	if n.Date != "" {
-		n.DateFormatted, err = time.Parse(dateFormat, n.Date)
-		if err != nil {
-			return err
-		}
-	} else {
-		n.DateFormatted = time.Now()
-		if err != nil {
-			return err
-		}
-	}
-
-	if n.Title == "" {
-		return entity.ErrInvalidInput
-	}
-
-	if n.Status == "" {
-		n.Status = entity.StatusNotDone
 	}
 
 	return nil
 }
 
-type updateNoteInput struct {
+type getPersonsRequest struct {
+	Name        string
+	Surname     string
+	Patronymic  string
+	Age         int
+	Gender      string
+	Nationalize string
+	Limit       int
+	Page        int
+}
+
+func (p *getPersonsRequest) Set(r *http.Request) error {
+	var err error
+
+	p.Name = r.URL.Query().Get("name")
+	p.Surname = r.URL.Query().Get("surname")
+
+	if r.URL.Query().Has("patronymic") {
+		p.Patronymic = r.URL.Query().Get("patronymic")
+	}
+
+	if r.URL.Query().Has("age") {
+		p.Age, err = strconv.Atoi(r.URL.Query().Get("age"))
+		if err != nil {
+			logger.DebugKV(r.Context(), "get persons request", "err", err)
+			return entity.ErrInvalidInput
+		}
+	}
+
+	p.Gender = r.URL.Query().Get("gender")
+	if p.Gender != entity.Male && p.Gender != entity.Female {
+		logger.DebugKV(r.Context(), "get persons request", "err", err)
+		return entity.ErrInvalidInput
+	}
+
+	p.Nationalize = r.URL.Query().Get("nationalize")
+
+	if r.URL.Query().Has("limit") {
+		p.Limit, err = strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil {
+			logger.DebugKV(r.Context(), "get persons request", "err", err)
+			return entity.ErrInvalidInput
+		}
+
+		if p.Limit < 0 {
+			return entity.ErrInvalidInput
+		}
+
+		if p.Limit == 0 {
+			p.Limit = 5
+		}
+	}
+
+	if r.URL.Query().Has("page") {
+		p.Page, err = strconv.Atoi(r.URL.Query().Get("page"))
+		if err != nil {
+			logger.DebugKV(r.Context(), "get persons request", "err", err)
+			return entity.ErrInvalidInput
+		}
+
+		if p.Page <= 0 {
+			logger.DebugKV(r.Context(), "get persons request", "err", err)
+			return entity.ErrInvalidInput
+		}
+	}
+
+	logger.DebugKV(r.Context(), "get persons request", "err", err)
+	return nil
+}
+
+type updatePersonInput struct {
 	ID          int    `json:"-"`
-	Title       string `json:"title,omitempty"`
-	Description string `json:"description,omitempty"`
-	Status      string `json:"status,omitempty"`
+	Name        string `json:"name,omitempty"`
+	Surname     string `json:"surname,omitempty"`
+	Patronymic  string `json:"patronymic,omitempty"`
+	Age         int    `json:"age,omitempty"`
+	Gender      string `json:"gender,omitempty"`
+	Nationalize string `json:"nationalize,omitempty"`
 }
 
-func (n *updateNoteInput) Set(r *http.Request) error {
-	n.ID, _ = strconv.Atoi(mux.Vars(r)["id"])
-	if n.ID == 0 {
-		return entity.ErrInvalidId
+func (p *updatePersonInput) Set(r *http.Request) error {
+	p.ID, _ = strconv.Atoi(mux.Vars(r)["id"])
+	if p.ID == 0 {
+		return entity.ErrInvalidQueryId
 	}
 
-	err := json.NewDecoder(r.Body).Decode(n)
+	err := json.NewDecoder(r.Body).Decode(p)
 	if err != nil {
 		return entity.ErrInvalidInput
 	}
 
-	if n.Title == "" && n.Description == "" && n.Status == "" {
+	if p.Name == "" && p.Surname == "" && p.Age <= 0 && p.Gender == "" && p.Nationalize == "" {
 		return entity.ErrInvalidInput
 	}
-	return nil
-}
-
-type getNotesRequest struct {
-	Page          int       `json:"-"`
-	Status        string    `json:"status,omitempty"`
-	Date          string    `json:"date,omitempty"`
-	DateFormatted time.Time `json:"-"`
-	Limit         int       `json:"limit,omitempty"`
-}
-
-func (n *getNotesRequest) Set(r *http.Request) error {
-	var err error
-	n.Page, _ = strconv.Atoi(mux.Vars(r)["page"])
-	if n.Page == 0 {
-		return entity.ErrInvalidPage
-	}
-
-	err = json.NewDecoder(r.Body).Decode(n)
-	if err != nil {
-		return entity.ErrInvalidInput
-	}
-
-	if n.Limit < 0 {
-		return entity.ErrInvalidInput
-	}
-
-	if n.Limit == 0 {
-		n.Limit = 5
-	}
-
-	if n.Date != "" {
-		n.DateFormatted, err = time.Parse(dateFormat, n.Date)
-		if err != nil {
-			return entity.ErrInvalidDate
-		}
-	}
-
-	if n.Status != "" && n.Status != entity.StatusDone && n.Status != entity.StatusNotDone {
-		return entity.ErrInvalidStatus
-	}
-
 	return nil
 }

@@ -15,68 +15,16 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/note": {
-            "post": {
-                "description": "create note",
-                "consumes": [
-                    "application/json"
-                ],
+        "/api/v1/person/{id}": {
+            "delete": {
+                "description": "Delete person by id",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "notes"
                 ],
-                "summary": "Create note",
-                "parameters": [
-                    {
-                        "description": "note info",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/transport.createNoteInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/transport.successCUDResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    },
-                    "409": {
-                        "description": "Conflict",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/note/{id}": {
-            "get": {
-                "description": "Get note by id",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notes"
-                ],
-                "summary": "Get note by id",
+                "summary": "Delete person",
                 "parameters": [
                     {
                         "type": "integer",
@@ -90,7 +38,168 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/transport.getNoteResponse"
+                            "$ref": "#/definitions/transport.successResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/transport.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/transport.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/persons": {
+            "get": {
+                "description": "Get all persons",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "persons"
+                ],
+                "summary": "Get all persons",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "name",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "surname",
+                        "name": "surname",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "patronymic",
+                        "name": "patronymic",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "age",
+                        "name": "age",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "gender",
+                        "name": "gender",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "nationalize",
+                        "name": "nationalize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "page",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/transport.getPersonsResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/transport.errorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create person",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "persons"
+                ],
+                "summary": "Create person",
+                "parameters": [
+                    {
+                        "description": "Person's information",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/transport.createPersonInput"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/transport.successResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/transport.errorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/transport.errorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/persons/{id}": {
+            "get": {
+                "description": "Get person by id",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "persons"
+                ],
+                "summary": "Get person by id",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/transport.getPersonResponse"
                         }
                     },
                     "400": {
@@ -113,47 +222,8 @@ const docTemplate = `{
                     }
                 }
             },
-            "delete": {
-                "description": "Delete note by id",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notes"
-                ],
-                "summary": "Delete note",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "id",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/transport.successCUDResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    }
-                }
-            },
             "patch": {
-                "description": "update note by id",
+                "description": "update person by id",
                 "consumes": [
                     "application/json"
                 ],
@@ -161,9 +231,9 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "notes"
+                    "persons"
                 ],
-                "summary": "Update note",
+                "summary": "Update persons",
                 "parameters": [
                     {
                         "type": "integer",
@@ -178,7 +248,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/transport.updateNoteInput"
+                            "$ref": "#/definitions/transport.updatePersonInput"
                         }
                     }
                 ],
@@ -186,244 +256,7 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/transport.successCUDResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/notes": {
-            "get": {
-                "description": "Get all notes",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notes"
-                ],
-                "summary": "Get all notes",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/transport.getNotesResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "notes"
-                ],
-                "summary": "Delete notes",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/transport.successCUDResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/notes/{page}": {
-            "post": {
-                "description": "Get notes with filter",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "notes"
-                ],
-                "summary": "Get notes with filter",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "page",
-                        "name": "page",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "searching params",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/transport.getNotesRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/transport.getNotesResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/refresh": {
-            "post": {
-                "description": "Refresh tokens",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "User Refresh tokens",
-                "parameters": [
-                    {
-                        "description": "input",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/transport.signInInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/transport.tokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/sign-in": {
-            "post": {
-                "description": "Sign In",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Sign In",
-                "parameters": [
-                    {
-                        "description": "input",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/transport.signInInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/transport.tokenResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/transport.errorResponse"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/sign-up": {
-            "post": {
-                "description": "Sign Up",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Sign Up",
-                "parameters": [
-                    {
-                        "description": "input",
-                        "name": "input",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/transport.signUpInput"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/transport.successCUDResponse"
+                            "$ref": "#/definitions/transport.successResponse"
                         }
                     },
                     "400": {
@@ -443,50 +276,51 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "entity.Note": {
+        "entity.Person": {
             "type": "object",
             "properties": {
-                "date": {
-                    "type": "string"
+                "age": {
+                    "type": "integer"
                 },
-                "description": {
+                "gender": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "status": {
+                "name": {
                     "type": "string"
                 },
-                "title": {
+                "nationalize": {
                     "type": "string"
                 },
-                "user_id": {
-                    "type": "integer"
+                "patronymic": {
+                    "type": "string"
+                },
+                "surname": {
+                    "type": "string"
                 }
             }
         },
-        "transport.createNoteInput": {
+        "transport.createPersonInput": {
             "type": "object",
             "required": [
-                "title"
+                "name",
+                "surname"
             ],
             "properties": {
-                "date": {
+                "name": {
                     "type": "string",
-                    "maxLength": 10,
-                    "minLength": 9
+                    "maxLength": 64,
+                    "minLength": 2
                 },
-                "description": {
+                "patronymic": {
                     "type": "string"
                 },
-                "status": {
-                    "type": "string"
-                },
-                "title": {
+                "surname": {
                     "type": "string",
-                    "maxLength": 80,
-                    "minLength": 1
+                    "maxLength": 64,
+                    "minLength": 2
                 }
             }
         },
@@ -498,84 +332,26 @@ const docTemplate = `{
                 }
             }
         },
-        "transport.getNoteResponse": {
+        "transport.getPersonResponse": {
             "type": "object",
             "properties": {
-                "note": {
-                    "$ref": "#/definitions/entity.Note"
+                "person": {
+                    "$ref": "#/definitions/entity.Person"
                 }
             }
         },
-        "transport.getNotesRequest": {
+        "transport.getPersonsResponse": {
             "type": "object",
             "properties": {
-                "date": {
-                    "type": "string"
-                },
-                "limit": {
-                    "type": "integer"
-                },
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "transport.getNotesResponse": {
-            "type": "object",
-            "properties": {
-                "notes": {
+                "person": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/entity.Note"
+                        "$ref": "#/definitions/entity.Person"
                     }
                 }
             }
         },
-        "transport.signInInput": {
-            "type": "object",
-            "required": [
-                "login",
-                "password"
-            ],
-            "properties": {
-                "login": {
-                    "type": "string",
-                    "maxLength": 64,
-                    "minLength": 2
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 64,
-                    "minLength": 8
-                }
-            }
-        },
-        "transport.signUpInput": {
-            "type": "object",
-            "required": [
-                "email",
-                "login",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string",
-                    "maxLength": 64,
-                    "minLength": 6
-                },
-                "login": {
-                    "type": "string",
-                    "maxLength": 64,
-                    "minLength": 2
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 64,
-                    "minLength": 8
-                }
-            }
-        },
-        "transport.successCUDResponse": {
+        "transport.successResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -583,27 +359,25 @@ const docTemplate = `{
                 }
             }
         },
-        "transport.tokenResponse": {
+        "transport.updatePersonInput": {
             "type": "object",
             "properties": {
-                "access_token": {
+                "age": {
+                    "type": "integer"
+                },
+                "gender": {
                     "type": "string"
                 },
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "transport.updateNoteInput": {
-            "type": "object",
-            "properties": {
-                "description": {
+                "name": {
                     "type": "string"
                 },
-                "status": {
+                "nationalize": {
                     "type": "string"
                 },
-                "title": {
+                "patronymic": {
+                    "type": "string"
+                },
+                "surname": {
                     "type": "string"
                 }
             }

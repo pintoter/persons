@@ -1,7 +1,7 @@
 version: '3.9'
 
 services:
-  todo-app:
+  persons-app:
     container_name: persons-app
     build: 
       dockerfile: Dockerfile
@@ -14,7 +14,7 @@ services:
     environment:
       - DB_PASSWORD=${DB_PASSWORD}
     networks:
-      - todo-backend
+      - persons-backend
     restart: unless-stopped
 
   postgres:
@@ -31,10 +31,10 @@ services:
       - pg-data:/var/lib/postgresql/data
     restart: on-failure
     networks:
-      - todo-backend
+      - persons-backend
 
 networks:
-  todo-backend:
+  persons-backend:
     driver: bridge
 
 volumes:

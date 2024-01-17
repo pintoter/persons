@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 	"sync"
 
 	"github.com/pintoter/persons/internal/entity"
+	"github.com/pintoter/persons/pkg/logger"
 )
 
 func (s *Service) Create(ctx context.Context, person entity.Person) (int, error) {
@@ -19,42 +19,50 @@ func (s *Service) Create(ctx context.Context, person entity.Person) (int, error)
 	go func() {
 		defer wg.Done()
 		var err error
-		person.Age, err = s.client.GetAge(person.Name)
+		person.Age, err = s.gen.GenerateAge(ctx, person.Name)
+		logger.DebugKV(ctx, "generate age", "age", person.Age, "err", err)
 		if err != nil {
-			errChan <- err
+			errChan <- entity.ErrInvalidInput
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
 		var err error
-		person.Gender, err = s.client.GetGender(person.Name)
+		person.Gender, err = s.gen.GenerateGender(ctx, person.Name)
+		logger.DebugKV(ctx, "generate gender", "gender", person.Gender, "err", err)
 		if err != nil {
-			errChan <- err
+			errChan <- entity.ErrInvalidInput
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
 		var err error
-		person.Nationalize, err = s.client.GetNationalize(person.Name)
+		person.Nationalize, err = s.gen.GenerateNationalize(ctx, person.Name)
+		logger.DebugKV(ctx, "generate gender", "nationalize", person.Nationalize, "err", err)
 		if err != nil {
-			errChan <- err
+			errChan <- entity.ErrInvalidInput
 		}
 	}()
 
-	wg.Wait()
-
-	go func() { close(errChan) }()
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
 
 	for err := range errChan {
-		log.Println(err)
-		return 0, err
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	id, err := s.repo.Create(ctx, person)
+	if err != nil {
+		return 0, err
+	}
 
-	return id, err
+	return id, nil
 }
 
 func (s *Service) GetPerson(ctx context.Context, id int) (entity.Person, error) {
@@ -70,29 +78,49 @@ func (s *Service) GetPerson(ctx context.Context, id int) (entity.Person, error) 
 	return person, nil
 }
 
-func (s *Service) GetPersons(ctx context.Context, limit, offset int) ([]entity.Person, error) {
-	Persons, err := s.repo.GetPersons(ctx, limit, offset)
+type RequestFilters struct {
+	Name        *string
+	Surname     *string
+	Patronymic  *string
+	Age         *int
+	Gender      *string
+	Nationalize *string
+	Limit       int64
+	Offset      int64
+}
+
+func (s *Service) GetPersons(ctx context.Context, filters *RequestFilters) ([]entity.Person, error) {
+	persons, err := s.repo.GetPersons(ctx, filters)
 	if err != nil {
 		return nil, entity.ErrInternalService
 	}
 
-	return Persons, nil
+	return persons, nil
 }
 
-func (s *Service) Update(ctx context.Context, id int) error {
+type UpdateParams struct {
+	Name        *string
+	Surname     *string
+	Patronymic  *string
+	Age         *int
+	Gender      *string
+	Nationalize *string
+}
+
+func (s *Service) Update(ctx context.Context, id int, params *UpdateParams) error {
 	if !s.isPersonExists(ctx, id) {
 		return entity.ErrPersonNotExists
 	}
 
-	return s.repo.Update(ctx, id)
+	return s.repo.Update(ctx, id, params)
 }
 
 func (s *Service) Delete(ctx context.Context, id int) error {
-	if s.isPersonExists(ctx, id) {
-		return s.repo.Delete(ctx, id)
+	if !s.isPersonExists(ctx, id) {
+		return entity.ErrPersonNotExists
 	}
 
-	return entity.ErrPersonNotExists
+	return s.repo.Delete(ctx, id)
 }
 
 func (s *Service) isPersonExists(ctx context.Context, id int) bool {
