@@ -13,7 +13,7 @@ type getPersonResponse struct {
 }
 
 type getPersonsResponse struct {
-	Persons []entity.Person `json:"person"`
+	Persons []entity.Person `json:"persons"`
 }
 
 type successResponse struct {

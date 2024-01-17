@@ -9,6 +9,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pintoter/persons/internal/entity"
 	"github.com/pintoter/persons/internal/service"
+	"github.com/pintoter/persons/pkg/logger"
 )
 
 // @Summary Create person
@@ -94,19 +95,41 @@ func (h *Handler) getPersons(w http.ResponseWriter, r *http.Request) {
 		renderJSON(w, r, http.StatusBadRequest, errorResponse{err.Error()})
 		return
 	}
+	logger.DebugKV(r.Context(), "get persons request", "input", input)
 
-	data := service.RequestFilters{
-		Name:        &input.Name,
-		Surname:     &input.Surname,
-		Patronymic:  &input.Patronymic,
-		Age:         &input.Age,
-		Gender:      &input.Gender,
-		Nationalize: &input.Nationalize,
-		Limit:       int64(input.Limit),
-		Offset:      int64((input.Page - 1) * input.Limit),
+	data := &service.RequestFilters{}
+
+	if input.Name != "" {
+		data.Name = &input.Name
 	}
 
-	persons, err := h.service.GetPersons(r.Context(), &data)
+	if input.Surname != "" {
+		data.Surname = &input.Surname
+	}
+
+	if input.Patronymic != "" {
+		data.Patronymic = &input.Patronymic
+	}
+
+	if input.Age != 0 {
+		logger.DebugKV(r.Context(), "get persons request", "age", input.Age)
+		data.Age = &input.Age
+	}
+
+	if input.Gender != "" {
+		data.Gender = &input.Gender
+	}
+
+	if input.Nationalize != "" {
+		data.Nationalize = &input.Nationalize
+	}
+
+	data.Limit = int64(input.Limit)
+	data.Offset = (int64(input.Page) - 1) * data.Limit
+
+	logger.DebugKV(r.Context(), "get persons request", "input filters", data)
+
+	persons, err := h.service.GetPersons(r.Context(), data)
 	if err != nil {
 		renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
 		return
