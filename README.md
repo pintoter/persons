@@ -19,11 +19,39 @@
 ---
 
 ## Navigation
+* **[Task](#task)**
 * **[Installation](#installation)**
 * **[Example of requests](#examples-of-requests)**
 * **[Additional features](#additional-features)**
 
 ---
+
+## Task
+
+* Implement the REST API service's Persons that will receive full name via API and enrich it from open APIs
+answer with the most likely age, gender and nationality and save the data in database. 
+Upon request, provide information about found people. The following must be implemented 
+
+1. Implement CRUD methods:
+1.1 Get persons with various filters and pagination;
+1.2 Delete by ID;
+1.3 Update by ID;
+1.4 Create perons;
+```bash
+{
+"name": "Dmitriy",
+"surname": "Ushakov",
+"patronymic": "Vasilevich" // can be empty
+}
+```
+2. Enrich the correct message
+2.1 By age - https://api.agify.io/?name=Dmitriy
+2.2 Gender - https://api.genderize.io/?name=Dmitriy
+2.3 Nationality - https://api.nationalize.io/?name=Dmitriy
+3. Place the enriched message in the [PostrgeSQL](https://www.postgresql.org/) (the database structure must be created
+through `migrations`)
+4. Cover the code with debug and info logs
+5. Place configuration data in `.env` *
 
 ## Installation
 ```shell
