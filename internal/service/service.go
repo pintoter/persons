@@ -11,7 +11,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, person entity.Person) (int, error)
 	GetPerson(ctx context.Context, id int) (entity.Person, error)
-	GetPersons(ctx context.Context, filters *RequestFilters) ([]entity.Person, error)
+	GetPersons(ctx context.Context, filters *GetFilters) ([]entity.Person, error)
 	Update(ctx context.Context, id int, params *UpdateParams) error
 	Delete(ctx context.Context, id int) error
 }
@@ -23,13 +23,13 @@ type Generator interface {
 }
 
 type Service struct {
-	repo Repository
-	gen  Generator
+	Repository
+	Generator
 }
 
 func New(repo Repository, gen Generator) *Service {
 	return &Service{
-		repo: repo,
-		gen:  gen,
+		Repository: repo,
+		Generator:  gen,
 	}
 }

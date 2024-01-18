@@ -7,7 +7,7 @@
 <div align="center">
     <h1>Persons</h1>
     <h5>
-        The service written in Go for store information about persons
+        The service written in Go for store information about persons as test task
     </h5>
 </div>
 
@@ -27,7 +27,7 @@
 
 ## Installation
 ```shell
-git clone https://github.com/pintoter/todo-list.git
+git clone https://github.com/pintoter/persons.git
 ```
 
 ---
@@ -56,20 +56,20 @@ make
 3. **To test the service's functionality, you can navigate to the address
   http://localhost:8080/swagger/index.html to access the Swagger documentation.**
 
-4. **Project's structure**
+4. **Service's structure**
 ```bash
 .
 ├── Dockerfile
-├── Dockerfile.debug
 ├── Makefile
 ├── README.md
-├── bin
+├── TASK.md
 ├── cmd
 │   └── app
 │       └── main.go
 ├── configs
 │   └── main.yml
-├── docker-compose.debug.yml
+├── cover.html
+├── cover.out
 ├── docker-compose.yml
 ├── docs
 │   ├── docs.go
@@ -80,64 +80,45 @@ make
 ├── internal
 │   ├── app
 │   │   └── app.go
+│   ├── client
+│   │   └── client.go
 │   ├── config
 │   │   └── config.go
 │   ├── database
 │   │   └── migrations.go
 │   ├── entity
 │   │   ├── errors.go
-│   │   ├── note.go
-│   │   ├── repository.go
-│   │   ├── session.go
-│   │   └── user.go
+│   │   └── person.go
 │   ├── repository
-│   │   ├── dbrepo
-│   │   │   ├── notes_create.go
-│   │   │   ├── notes_create_test.go
-│   │   │   ├── notes_delete.go
-│   │   │   ├── notes_delete_test.go
-│   │   │   ├── notes_get.go
-│   │   │   ├── notes_get_test.go
-│   │   │   ├── notes_update.go
-│   │   │   ├── notes_update_test.go
-│   │   │   ├── repository.go
-│   │   │   ├── users.go
-│   │   │   ├── users_create.go
-│   │   │   ├── users_create_test.go
-│   │   │   ├── users_get.go
-│   │   │   ├── users_get_test.go
-│   │   │   ├── users_set_session.go
-│   │   │   └── users_set_session_test.go
+│   │   ├── persons_create.go
+│   │   ├── persons_create_test.go
+│   │   ├── persons_delete.go
+│   │   ├── persons_delete_test.go
+│   │   ├── persons_get.go
+│   │   ├── persons_get_test.go
+│   │   ├── persons_update.go
+│   │   ├── persons_update_test.go
 │   │   └── repository.go
 │   ├── server
 │   │   └── server.go
 │   ├── service
 │   │   ├── mocks
 │   │   │   └── mock.go
-│   │   ├── notes.go
-│   │   ├── service.go
-│   │   └── users.go
+│   │   ├── persons.go
+│   │   └── service.go
 │   └── transport
 │       ├── handler.go
-│       ├── middleware.go
-│       ├── notes.go
-│       ├── notes_test.go
+│       ├── persons.go
+│       ├── persons_test.go
 │       ├── request.go
-│       ├── response.go
-│       └── users.go
+│       └── response.go
 ├── migrations
-│   ├── 20231128193639_create_notes.down.sql
-│   ├── 20231128193639_create_notes.up.sql
-│   ├── 20231218171050_create_users.down.sql
-│   └── 20231218171050_create_users.up.sql
+│   ├── 20240117070006_migration.down.sql
+│   └── 20240117070006_migration.up.sql
 └── pkg
-    ├── auth
-    │   └── manager.go
     ├── database
     │   └── postgres
     │       └── postgres.go
-    ├── hash
-    │   └── hash.go
     └── logger
         └── logger.go
 ```
@@ -149,89 +130,87 @@ make
 ### Notes
 #### Example of correct input parameters:
 ```shell
-"title": "any, unique",
-"description": "any",
-"status": "done" / "not_done",
-"date": "YYYY-MM-DD, e.g.: 2023-01-29",
-"limit": "any, not negative"
+"name": "any, unique",
+"surname": "any",
+"paytronic": "any",
+"age": "any integer, not negative",
+"gender": "male" / "female",
+"nationalize": "any",
+"limit": "any integer, not negative",
+"page": "any integer, not negative"
 ```
-#### 1. Create note
+#### 1. Create person
 * Request example:
 ```shell
 curl -X 'POST' \
-  'http://localhost:8080/api/v1/note' \
+  'http://localhost:8080/api/v1/persons' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
-  "date": "2020-02-20",
-  "description": "one description",
-  "status": "not_done",
-  "title": "one title"
+  "name": "Ivan",
+  "surname": "Ivanov",
+  "patronymic": "Ivanovich"
 }'
 ```
 * Response example:
 ```json
 {
-  "message": "note created successfully"
+  "message": "created new person with ID: 1"
 }
 ```
 
-#### 2. Get note by ID
+#### 2. Get person by ID
 * Request example:
 ```shell
 curl -X 'GET' \
-  'http://localhost:8080/api/v1/note/1' \
+  'http://localhost:8080/api/v1/persons/1' \
   -H 'accept: application/json'
 ```
 * Response example:
 ```json
 {
   "note": {
-    "title": "one title",
-    "description": "one description",
-    "date": "2020-02-20T00:00:00Z",
-    "status": "not_done"
+    "name": "Ivan",
+    "surname": "Ivanov",
+    "patronymic": "Ivanovich",
+    "age": "not_done",
+    "gender": "male",
+    "nationalize": "RU"
   }
 }
 ```
 
-#### 3. Update note by ID
+#### 3. Update person by ID
 * Request example:
 ```shell
 curl -X 'PATCH' \
-  'http://localhost:8080/api/v1/note/2' \
+  'http://localhost:8080/api/v1/persons/1' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
-  "description": "any",
-  "status": "not_done",
-  "title": "one title"
+  "patronymic": "Ivanovich"
 }'
 ```
 * Response example:
 ```json
 {
-  "error": "note already exists with title: one title"
+  "message": "person updated successfully"
 }
 ```
-> **Hint:**  You can update partially (not all fields). if you want to update to an existing title, you will receive an error, as in the example above, otherwise:
-```json
-{
-  "message": "note updated successfully"
-}
-```
+> **Hint:**  You can update partially (not all fields).
 
-#### 4. Delete note by ID
+
+#### 4. Delete person by ID
 * Request example:
 ```shell
 curl -X 'DELETE' \
-  'http://localhost:8080/api/v1/note/1' \
+  'http://localhost:8080/api/v1/person/1' \
   -H 'accept: application/json'
 ```
 * Response example:
 ```json
 {
-  "message": "note deleted succesfully"
+  "message": "person deleted succesfully"
 }
 ```
 
@@ -239,7 +218,7 @@ curl -X 'DELETE' \
 * Request example:
 ```shell
 curl -X 'GET' \
-  'http://localhost:8080/api/v1/notes' \
+  'http://localhost:8080/api/v1/persons/?nationalize=RU&page=1&limit=5' \
   -H 'accept: application/json'
 ```
 * Response example:
@@ -248,85 +227,35 @@ curl -X 'GET' \
   "notes": [
     {
       "id": 1,
-      "title": "one title",
-      "description": "one description",
-      "date": "2020-02-20T00:00:00Z",
-      "status": "not_done"
+      "name": "Ivan",
+      "surname": "Ivanov",
+      "patronymic": "Ivanovich",
+      "age": 18,
+      "gender": "male",
+      "nationalize": "RU"
     },
     {
       "id": 2,
-      "title": "two title",
-      "description": "two description",
-      "date": "2020-02-20T00:00:00Z",
-      "status": "not_done"
+      "name": "Ivan",
+      "surname": "Ivanov",
+      "patronymic": "Ivanovich",
+      "age": 19,
+      "gender": "male",
+      "nationalize": "RU"
     },
     {
       "id": 3,
-      "title": "three title",
-      "description": "three description",
-      "date": "2020-02-20T00:00:00Z",
-      "status": "not_done"
+      "name": "Ivan",
+      "surname": "Ivanov",
+      "patronymic": "Ivanovich",
+      "age": 20,
+      "gender": "male",
+      "nationalize": "RU"
     },
   ]
 }
 ```
-
-#### 6. Delete all notes
-* Request example:
-```shell
-curl -X 'DELETE' \
-  'http://localhost:8080/api/v1/notes' \
-  -H 'accept: application/json'
-```
-* Response example:
-```json
-{
-  "message": "notes deleted succesfully"
-}
-```
-
-#### 7. Get all notes with pagination, status and date
-* Request example:
-```shell
-curl -X 'POST' \
-  'http://localhost:8080/api/v1/notes/1' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "date": "2020-02-20",
-  "limit": 0,
-  "status": "not_done"
-}'
-```
-* Response example:
-```json
-{
-  "notes": [
-    {
-      "id": 1,
-      "title": "one title",
-      "description": "one description",
-      "date": "2020-02-20T00:00:00Z",
-      "status": "not_done"
-    },
-    {
-      "id": 2,
-      "title": "two title",
-      "description": "two description",
-      "date": "2020-02-20T00:00:00Z",
-      "status": "not_done"
-    },
-    {
-      "id": 3,
-      "title": "three title",
-      "description": "three description",
-      "date": "2020-02-20T00:00:00Z",
-      "status": "not_done"
-    }
-  ]
-}
-```
-> **Hint:** you can update partially (without any fields).
+> **Hint:**  Use query parameters (name, surname, patronymic, age, gender, nationalize, limit, page) for apply filters.
 
 ---
 

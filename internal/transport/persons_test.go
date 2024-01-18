@@ -2,56 +2,57 @@ package transport
 
 import (
 	"bytes"
-	"database/sql"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/gorilla/mux"
-	"github.com/pintoter/todo-list/internal/entity"
-	"github.com/pintoter/todo-list/internal/service"
-	mock_service "github.com/pintoter/todo-list/internal/service/mocks"
+	"github.com/pintoter/persons/internal/entity"
+	"github.com/pintoter/persons/internal/service"
+	mock_service "github.com/pintoter/persons/internal/service/mocks"
+
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCreateNoteHandler(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockINotesRepository, note entity.Note)
-
-	dateFormatted, _ := time.Parse(dateFormat, "2020-01-20")
+func Test_CreatePersonHandler(t *testing.T) {
+	type mockBehavior func(s *mock_service.MockRepository, b *mock_service.MockGenerator, person entity.Person)
 
 	tests := []struct {
 		name                 string
 		inputBody            string
-		inputNote            entity.Note
+		inputPerson          entity.Person
 		mockBehavior         mockBehavior
 		expectedStatusCode   int
 		expectedResponseBody string
 	}{
 		{
-			name: "Ok",
+			name: "Success",
 			inputBody: `{
-					"date": "2020-01-20",
-					"description": "Test description",
-					"status": "not_done",
-					"title": "Test one"
+					"name": "Ivan",
+					"surname": "Ivanov",
+					"patronymic": "Ivanovich"
 				}`,
-			inputNote: entity.Note{
-				Title:       "Test one",
-				Description: "Test description",
-				Status:      "not_done",
-				Date:        dateFormatted,
+			inputPerson: entity.Person{
+				Name:        "Ivan",
+				Surname:     "Ivanov",
+				Patronymic:  "Ivanovich",
+				Age:         18,
+				Gender:      "male",
+				Nationalize: "RU",
 			},
-			mockBehavior: func(s *mock_service.MockINotesRepository, note entity.Note) {
-				s.EXPECT().GetByTitle(gomock.Any(), note.Title).Return(entity.Note{}, sql.ErrNoRows)
-				s.EXPECT().Create(gomock.Any(), note).Return(1, nil)
+			mockBehavior: func(r *mock_service.MockRepository, g *mock_service.MockGenerator, person entity.Person) {
+				g.EXPECT().GenerateAge(gomock.Any(), person.Name).Times(1).Return(18, nil)
+				g.EXPECT().GenerateGender(gomock.Any(), person.Name).Times(1).Return("male", nil)
+				g.EXPECT().GenerateNationalize(gomock.Any(), person.Name).Times(1).Return("RU", nil)
+				r.EXPECT().Create(gomock.Any(), person).Return(1, nil)
 			},
 			expectedStatusCode: http.StatusCreated,
 			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(successCUDResponse{Message: "note created successfully"}, "", "    ")
+				resp, _ := json.MarshalIndent(successResponse{Message: "created new person ID: 1"}, "", "    ")
 				return string(resp)
 			}(),
 		},
@@ -62,22 +63,25 @@ func TestCreateNoteHandler(t *testing.T) {
 			c := gomock.NewController(t)
 			defer c.Finish()
 
-			noterepo := mock_service.NewMockINotesRepository(c)
-			tt.mockBehavior(noterepo, tt.inputNote)
+			repo := mock_service.NewMockRepository(c)
+			gen := mock_service.NewMockGenerator(c)
+			tt.mockBehavior(repo, gen, tt.inputPerson)
 
 			service := &service.Service{
-				IRepository: noterepo,
+				Repository: repo,
+				Generator:  gen,
 			}
 
-			handler := NewHandler(service)
+			handler := Handler{}
+			handler.service = service
 
 			// Init endpoint
 			mux := mux.NewRouter()
-			mux.HandleFunc("/note", handler.createNoteHandler).Methods(http.MethodPost)
+			mux.HandleFunc("/persons", handler.createPerson).Methods(http.MethodPost)
 
 			// Create request
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("POST", "/note", bytes.NewBufferString(tt.inputBody))
+			r := httptest.NewRequest("POST", "/persons", bytes.NewBufferString(tt.inputBody))
 
 			mux.ServeHTTP(w, r)
 
@@ -87,10 +91,8 @@ func TestCreateNoteHandler(t *testing.T) {
 	}
 }
 
-func TestGetNoteHandler(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockINotesRepository, id int)
-
-	dateFormatted, _ := time.Parse(dateFormat, "2020-01-20")
+func Test_GetPersonHandler(t *testing.T) {
+	type mockBehavior func(s *mock_service.MockRepository, id int)
 
 	tests := []struct {
 		name                 string
@@ -102,44 +104,216 @@ func TestGetNoteHandler(t *testing.T) {
 		{
 			name:    "Ok",
 			inputId: 1,
-			mockBehavior: func(s *mock_service.MockINotesRepository, id int) {
-				s.EXPECT().GetById(gomock.Any(), id).Return(entity.Note{
-					Title:       "Test one",
-					Description: "Test description",
-					Status:      "not_done",
-					Date:        dateFormatted,
+			mockBehavior: func(s *mock_service.MockRepository, id int) {
+				s.EXPECT().GetPerson(context.Background(), id).Return(entity.Person{
+					ID:          1,
+					Name:        "name",
+					Surname:     "surname",
+					Patronymic:  "patronymic",
+					Age:         18,
+					Gender:      "male",
+					Nationalize: "RU",
 				}, nil)
 			},
 			expectedStatusCode: http.StatusOK,
 			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(getNoteResponse{Note: entity.Note{
-					Title:       "Test one",
-					Description: "Test description",
-					Status:      "not_done",
-					Date:        dateFormatted,
+				resp, _ := json.MarshalIndent(getPersonResponse{Person: entity.Person{
+					ID:          1,
+					Name:        "name",
+					Surname:     "surname",
+					Patronymic:  "patronymic",
+					Age:         18,
+					Gender:      "male",
+					Nationalize: "RU",
 				}}, "", "    ")
 				return string(resp)
 			}(),
 		},
 		{
 			name:    "FailedNotExist",
-			inputId: 1,
-			mockBehavior: func(s *mock_service.MockINotesRepository, id int) {
-				s.EXPECT().GetById(gomock.Any(), id).Return(entity.Note{}, entity.ErrNoteNotExists)
+			inputId: 2,
+			mockBehavior: func(s *mock_service.MockRepository, id int) {
+				s.EXPECT().GetPerson(context.Background(), id).Return(entity.Person{}, entity.ErrPersonNotExists)
 			},
 			expectedStatusCode: http.StatusNotFound,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(errorResponse{
-					Err: entity.ErrNoteNotExists.Error(),
+					Err: entity.ErrPersonNotExists.Error(),
+				}, "", "    ")
+				return string(resp)
+			}(),
+		},
+		{
+			name:               "FailedWithId",
+			inputId:            0,
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponseBody: func() string {
+				resp, _ := json.MarshalIndent(errorResponse{
+					Err: entity.ErrPersonNotExists.Error(),
 				}, "", "    ")
 				return string(resp)
 			}(),
 		},
 		{
 			name:    "FailedWithErr",
-			inputId: 1,
-			mockBehavior: func(s *mock_service.MockINotesRepository, id int) {
-				s.EXPECT().GetById(gomock.Any(), id).Return(entity.Note{}, errors.New("any error"))
+			inputId: 2,
+			mockBehavior: func(s *mock_service.MockRepository, id int) {
+				s.EXPECT().GetPerson(context.Background(), id).Return(entity.Person{}, entity.ErrPersonNotExists)
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedResponseBody: func() string {
+				resp, _ := json.MarshalIndent(errorResponse{
+					Err: entity.ErrPersonNotExists.Error(),
+				}, "", "    ")
+				return string(resp)
+			}(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := gomock.NewController(t)
+			defer c.Finish()
+
+			repo := mock_service.NewMockRepository(c)
+			tt.mockBehavior(repo, tt.inputId)
+
+			service := &service.Service{
+				Repository: repo,
+			}
+
+			handler := &Handler{
+				service: service,
+			}
+
+			mux := mux.NewRouter()
+			mux.HandleFunc("/persons/{id}", handler.getPerson).Methods(http.MethodGet)
+
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", "/persons/1", nil)
+
+			mux.ServeHTTP(w, r)
+
+			assert.Equal(t, tt.expectedStatusCode, w.Code)
+			assert.Equal(t, tt.expectedResponseBody, w.Body.String())
+		})
+	}
+}
+
+func Test_GetPersonsHandler(t *testing.T) {
+	type mockBehavior func(s *mock_service.MockRepository, data *service.GetFilters)
+
+	tests := []struct {
+		name                 string
+		path                 string
+		mockBehavior         mockBehavior
+		expectedStatusCode   int
+		expectedResponseBody string
+	}{
+		{
+			name: "Ok",
+			path: "/?nationalize=RU",
+			mockBehavior: func(s *mock_service.MockRepository, data *service.GetFilters) {
+				s.EXPECT().GetPersons(context.Background(), data).Return(
+					[]entity.Person{
+						{
+							ID:          1,
+							Name:        "name",
+							Surname:     "surname",
+							Patronymic:  "patronymic",
+							Age:         18,
+							Gender:      "male",
+							Nationalize: "RU",
+						}, {
+							ID:          2,
+							Name:        "name1",
+							Surname:     "surname1",
+							Patronymic:  "patronymic1",
+							Age:         19,
+							Gender:      "male",
+							Nationalize: "RU",
+						},
+					},
+					nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponseBody: func() string {
+				resp, _ := json.MarshalIndent(getPersonsResponse{Persons: []entity.Person{
+					{
+						ID:          1,
+						Name:        "name",
+						Surname:     "surname",
+						Patronymic:  "patronymic",
+						Age:         18,
+						Gender:      "male",
+						Nationalize: "RU",
+					}, {
+						ID:          2,
+						Name:        "name1",
+						Surname:     "surname1",
+						Patronymic:  "patronymic1",
+						Age:         19,
+						Gender:      "male",
+						Nationalize: "RU",
+					},
+				}}, "", "    ")
+				return string(resp)
+			}(),
+		},
+		{
+			name: "Ok2",
+			path: "/?name=name",
+			mockBehavior: func(s *mock_service.MockRepository, data *service.GetFilters) {
+				s.EXPECT().GetPersons(context.Background(), data).Return(
+					[]entity.Person{
+						{
+							ID:          1,
+							Name:        "name",
+							Surname:     "surname",
+							Patronymic:  "patronymic",
+							Age:         18,
+							Gender:      "male",
+							Nationalize: "RU",
+						}, {
+							ID:          2,
+							Name:        "name",
+							Surname:     "surname1",
+							Patronymic:  "patronymic1",
+							Age:         19,
+							Gender:      "male",
+							Nationalize: "RU",
+						},
+					},
+					nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponseBody: func() string {
+				resp, _ := json.MarshalIndent(getPersonsResponse{Persons: []entity.Person{
+					{
+						ID:          1,
+						Name:        "name",
+						Surname:     "surname",
+						Patronymic:  "patronymic",
+						Age:         18,
+						Gender:      "male",
+						Nationalize: "RU",
+					}, {
+						ID:          2,
+						Name:        "name1",
+						Surname:     "surname1",
+						Patronymic:  "patronymic1",
+						Age:         19,
+						Gender:      "male",
+						Nationalize: "RU",
+					},
+				}}, "", "    ")
+				return string(resp)
+			}(),
+		},
+		{
+			name: "FailedWithErr",
+			mockBehavior: func(s *mock_service.MockRepository, data *service.GetFilters) {
+				s.EXPECT().GetPersons(context.Background(), data).Return(nil, errors.New("any error"))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponseBody: func() string {
@@ -149,102 +323,13 @@ func TestGetNoteHandler(t *testing.T) {
 				return string(resp)
 			}(),
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			defer c.Finish()
-
-			noterepo := mock_service.NewMockINotesRepository(c)
-			tt.mockBehavior(noterepo, tt.inputId)
-
-			service := &service.Service{
-				IRepository: noterepo,
-			}
-
-			handler := &Handler{
-				service: service,
-			}
-
-			mux := mux.NewRouter()
-			mux.HandleFunc("/note/{id}", handler.getNoteHandler).Methods(http.MethodGet)
-
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", "/note/1", nil)
-
-			mux.ServeHTTP(w, r)
-
-			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			assert.Equal(t, tt.expectedResponseBody, w.Body.String())
-		})
-	}
-}
-
-func TestGetNotesHandler(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockINotesRepository)
-
-	dateFormatted, _ := time.Parse(dateFormat, "2020-01-20")
-
-	tests := []struct {
-		name                 string
-		inputId              int
-		mockBehavior         mockBehavior
-		expectedStatusCode   int
-		expectedResponseBody string
-	}{
 		{
-			name:    "Ok",
-			inputId: 1,
-			mockBehavior: func(s *mock_service.MockINotesRepository) {
-				s.EXPECT().GetNotes(gomock.Any()).Return([]entity.Note{
-					{
-						ID:          1,
-						Title:       "Test one",
-						Description: "Test description",
-						Status:      "not_done",
-						Date:        dateFormatted,
-					},
-					{
-						ID:          2,
-						Title:       "Test two",
-						Description: "Test description",
-						Status:      "not_done",
-						Date:        dateFormatted,
-					},
-				}, nil)
-			},
-			expectedStatusCode: http.StatusOK,
-			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(getNotesResponse{Notes: []entity.Note{
-					{
-						ID:          1,
-						Title:       "Test one",
-						Description: "Test description",
-						Status:      "not_done",
-						Date:        dateFormatted,
-					},
-					{
-						ID:          2,
-						Title:       "Test two",
-						Description: "Test description",
-						Status:      "not_done",
-						Date:        dateFormatted,
-					},
-				}}, "", "    ")
-				return string(resp)
-			}(),
-		},
-		{
-			name:    "FailedWithErr",
-			inputId: 1,
-			mockBehavior: func(s *mock_service.MockINotesRepository) {
-				s.EXPECT().GetNotes(gomock.Any()).Return(nil, errors.New("any error"))
-			},
+			name:               "FailedWithErr2",
+			path:               "/?gender=mala",
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(errorResponse{
-					Err: "any error",
+					Err: entity.ErrInvalidInput.Error(),
 				}, "", "    ")
 				return string(resp)
 			}(),
@@ -256,11 +341,12 @@ func TestGetNotesHandler(t *testing.T) {
 			c := gomock.NewController(t)
 			defer c.Finish()
 
-			noterepo := mock_service.NewMockINotesRepository(c)
-			tt.mockBehavior(noterepo)
+			filters := &service.GetFilters{}
+			repo := mock_service.NewMockRepository(c)
+			tt.mockBehavior(repo, filters)
 
 			service := &service.Service{
-				IRepository: noterepo,
+				Repository: repo,
 			}
 
 			handler := &Handler{
@@ -268,10 +354,10 @@ func TestGetNotesHandler(t *testing.T) {
 			}
 
 			mux := mux.NewRouter()
-			mux.HandleFunc("/notes", handler.getNotesHandler).Methods(http.MethodGet)
+			mux.HandleFunc("/persons", handler.getPersons).Methods(http.MethodGet)
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", "/notes", nil)
+			r := httptest.NewRequest("GET", "/notes"+tt.path, nil)
 
 			mux.ServeHTTP(w, r)
 
@@ -281,168 +367,47 @@ func TestGetNotesHandler(t *testing.T) {
 	}
 }
 
-func TestGetNotesExtendedHandler(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockINotesRepository, limit, offset int, status string, date time.Time)
-
-	dateFormatted, _ := time.Parse(dateFormat, "2020-01-20")
+func Test_Delete(t *testing.T) {
+	type mockBehavior func(s *mock_service.MockRepository, id int)
 
 	tests := []struct {
 		name                 string
-		inputBody            string
-		inputLimit           int
-		inputStatus          string
-		inputDate            time.Time
-		mockBehavior         mockBehavior
-		expectedStatusCode   int
-		expectedResponseBody string
-	}{
-		{
-			name:        "Ok",
-			inputLimit:  5,
-			inputStatus: "not_done",
-			inputDate:   time.Time{},
-			inputBody:   `{"status": "not_done"}`,
-			mockBehavior: func(s *mock_service.MockINotesRepository, limit, offset int, status string, date time.Time) {
-				s.EXPECT().GetNotesExtended(gomock.Any(), limit, offset, status, date).Return([]entity.Note{
-					{
-						ID:          1,
-						Title:       "Test one",
-						Description: "Test description",
-						Status:      "not_done",
-						Date:        dateFormatted,
-					},
-					{
-						ID:          2,
-						Title:       "Test two",
-						Description: "Test description",
-						Status:      "not_done",
-						Date:        dateFormatted,
-					},
-				}, nil)
-			},
-			expectedStatusCode: http.StatusOK,
-			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(getNotesResponse{Notes: []entity.Note{
-					{
-						ID:          1,
-						Title:       "Test one",
-						Description: "Test description",
-						Status:      "not_done",
-						Date:        dateFormatted,
-					},
-					{
-						ID:          2,
-						Title:       "Test two",
-						Description: "Test description",
-						Status:      "not_done",
-						Date:        dateFormatted,
-					},
-				}}, "", "    ")
-				return string(resp)
-			}(),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			defer c.Finish()
-
-			noterepo := mock_service.NewMockINotesRepository(c)
-			tt.mockBehavior(noterepo, tt.inputLimit, 0, tt.inputStatus, tt.inputDate)
-
-			service := &service.Service{
-				IRepository: noterepo,
-			}
-
-			handler := &Handler{
-				service: service,
-			}
-
-			mux := mux.NewRouter()
-			mux.HandleFunc("/notes/{page}", handler.getNotesExtendedHandler).Methods(http.MethodPost)
-
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest("POST", "/notes/1", bytes.NewBufferString(tt.inputBody))
-
-			mux.ServeHTTP(w, r)
-
-			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			assert.Equal(t, tt.expectedResponseBody, w.Body.String())
-		})
-	}
-}
-
-func TestDeleteById(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockINotesRepository, id int)
-
-	tests := []struct {
-		name                 string
+		path                 string
 		mockBehavior         mockBehavior
 		expectedStatusCode   int
 		expectedResponseBody string
 	}{
 		{
 			name: "Ok",
-			mockBehavior: func(s *mock_service.MockINotesRepository, id int) {
-				s.EXPECT().GetById(gomock.Any(), id).Return(entity.Note{}, nil)
-				s.EXPECT().DeleteById(gomock.Any(), id).Return(nil)
+			path: "1",
+			mockBehavior: func(s *mock_service.MockRepository, id int) {
+				s.EXPECT().Delete(context.Background(), id).Return(nil)
 			},
 			expectedStatusCode: http.StatusOK,
 			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(successCUDResponse{Message: "note deleted succesfully"}, "", "    ")
+				resp, _ := json.MarshalIndent(successResponse{Message: "note deleted succesfully"}, "", "    ")
 				return string(resp)
 			}(),
 		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			defer c.Finish()
-
-			noterepo := mock_service.NewMockINotesRepository(c)
-			tt.mockBehavior(noterepo, 1)
-
-			service := &service.Service{
-				IRepository: noterepo,
-			}
-
-			handler := &Handler{
-				service: service,
-			}
-
-			mux := mux.NewRouter()
-			mux.HandleFunc("/note/{id}", handler.deleteNoteHandler).Methods(http.MethodDelete)
-
-			w := httptest.NewRecorder()
-			r := httptest.NewRequest("DELETE", "/note/1", nil)
-
-			mux.ServeHTTP(w, r)
-
-			assert.Equal(t, tt.expectedStatusCode, w.Code)
-			assert.Equal(t, tt.expectedResponseBody, w.Body.String())
-		})
-	}
-}
-
-func TestDeleteNotes(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockINotesRepository)
-
-	tests := []struct {
-		name                 string
-		mockBehavior         mockBehavior
-		expectedStatusCode   int
-		expectedResponseBody string
-	}{
 		{
-			name: "Ok",
-			mockBehavior: func(s *mock_service.MockINotesRepository) {
-				s.EXPECT().DeleteNotes(gomock.Any()).Return(nil)
-			},
-			expectedStatusCode: http.StatusOK,
+			name:               "FailedWithInput",
+			path:               "0",
+			mockBehavior:       func(s *mock_service.MockRepository, id int) {},
+			expectedStatusCode: http.StatusBadRequest,
 			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(successCUDResponse{Message: "notes deleted succesfully"}, "", "    ")
+				resp, _ := json.MarshalIndent(errorResponse{Err: entity.ErrInvalidInput.Error()}, "", "    ")
+				return string(resp)
+			}(),
+		},
+		{
+			name: "FailedWithNoPerson",
+			path: "5",
+			mockBehavior: func(s *mock_service.MockRepository, id int) {
+				s.EXPECT().Delete(context.Background(), id).Return(entity.ErrPersonNotExists)
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponseBody: func() string {
+				resp, _ := json.MarshalIndent(errorResponse{Err: entity.ErrPersonNotExists.Error()}, "", "    ")
 				return string(resp)
 			}(),
 		},
@@ -453,11 +418,11 @@ func TestDeleteNotes(t *testing.T) {
 			c := gomock.NewController(t)
 			defer c.Finish()
 
-			noterepo := mock_service.NewMockINotesRepository(c)
-			tt.mockBehavior(noterepo)
+			repo := mock_service.NewMockRepository(c)
+			tt.mockBehavior(repo, 1)
 
 			service := &service.Service{
-				IRepository: noterepo,
+				Repository: repo,
 			}
 
 			handler := &Handler{
@@ -465,10 +430,10 @@ func TestDeleteNotes(t *testing.T) {
 			}
 
 			mux := mux.NewRouter()
-			mux.HandleFunc("/notes", handler.deleteNotesHandler).Methods(http.MethodDelete)
+			mux.HandleFunc("/note/{id}", handler.deletePerson).Methods(http.MethodDelete)
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("DELETE", "/notes", nil)
+			r := httptest.NewRequest("DELETE", "/persons/"+tt.path, nil)
 
 			mux.ServeHTTP(w, r)
 
@@ -479,38 +444,55 @@ func TestDeleteNotes(t *testing.T) {
 }
 
 func TestUpdateNoteHandler(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockINotesRepository, id int, title, description, status string)
+	type mockBehavior func(s *mock_service.MockRepository, id int, params *service.UpdateParams)
 
 	tests := []struct {
 		name                 string
-		inputId              int
-		inputTitle           string
-		inputStatus          string
-		inputDescription     string
+		id                   int
+		params               *service.UpdateParams
 		inputBody            string
 		mockBehavior         mockBehavior
 		expectedStatusCode   int
 		expectedResponseBody string
 	}{
 		{
-			name:             "Ok",
-			inputId:          1,
-			inputTitle:       "Test one",
-			inputStatus:      "not_done",
-			inputDescription: "Test description",
+			name: "Ok",
+			id:   1,
 			inputBody: `{
-					"description": "Test description",
-					"status": "not_done",
-					"title": "Test one"
+					"name": "Ivan",
 				}`,
-			mockBehavior: func(s *mock_service.MockINotesRepository, id int, title, description, status string) {
-				s.EXPECT().GetById(gomock.Any(), id).Return(entity.Note{}, nil)
-				s.EXPECT().GetByTitle(gomock.Any(), title).Return(entity.Note{}, entity.ErrNoteNotExists)
-				s.EXPECT().UpdateNote(gomock.Any(), id, title, description, status).Return(nil)
+			mockBehavior: func(s *mock_service.MockRepository, id int, params *service.UpdateParams) {
+				s.EXPECT().Update(context.Background(), id, params).Return(nil)
 			},
 			expectedStatusCode: http.StatusAccepted,
 			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(successCUDResponse{Message: "note updated successfully"}, "", "    ")
+				resp, _ := json.MarshalIndent(successResponse{Message: "note updated successfully"}, "", "    ")
+				return string(resp)
+			}(),
+		},
+		{
+			name: "Failed",
+			id:   0,
+			inputBody: `{
+					"name": "Ivan",
+				}`,
+			mockBehavior:       func(s *mock_service.MockRepository, id int, params *service.UpdateParams) {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponseBody: func() string {
+				resp, _ := json.MarshalIndent(errorResponse{Err: entity.ErrInvalidInput.Error()}, "", "    ")
+				return string(resp)
+			}(),
+		},
+		{
+			name: "FailedWithId",
+			id:   5,
+			inputBody: `{
+					"name": "Ivan",
+				}`,
+			mockBehavior:       func(s *mock_service.MockRepository, id int, params *service.UpdateParams) {},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponseBody: func() string {
+				resp, _ := json.MarshalIndent(errorResponse{Err: entity.ErrPersonNotExists.Error()}, "", "    ")
 				return string(resp)
 			}(),
 		},
@@ -521,18 +503,20 @@ func TestUpdateNoteHandler(t *testing.T) {
 			c := gomock.NewController(t)
 			defer c.Finish()
 
-			noterepo := mock_service.NewMockINotesRepository(c)
-			tt.mockBehavior(noterepo, tt.inputId, tt.inputTitle, tt.inputDescription, tt.inputStatus)
+			repo := mock_service.NewMockRepository(c)
+			tt.mockBehavior(repo, tt.id, tt.params)
 
 			service := &service.Service{
-				IRepository: noterepo,
+				Repository: repo,
 			}
 
-			handler := NewHandler(service)
+			handler := &Handler{
+				service: service,
+			}
 
 			// Init endpoint
 			mux := mux.NewRouter()
-			mux.HandleFunc("/note/{id}", handler.updateNoteHandler).Methods(http.MethodPatch)
+			mux.HandleFunc("/note/{id}", handler.updatePerson).Methods(http.MethodPatch)
 
 			// Create request
 			w := httptest.NewRecorder()

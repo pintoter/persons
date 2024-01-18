@@ -1,6 +1,7 @@
 package transport
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -97,8 +98,21 @@ func (h *Handler) getPersons(w http.ResponseWriter, r *http.Request) {
 	}
 	logger.DebugKV(r.Context(), "get persons request", "input", input)
 
-	data := &service.RequestFilters{}
+	data := &service.GetFilters{}
+	convertInputToGetFilters(r.Context(), data, &input)
 
+	logger.DebugKV(r.Context(), "get persons request", "input filters", data)
+
+	persons, err := h.service.GetPersons(r.Context(), data)
+	if err != nil {
+		renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
+		return
+	}
+
+	renderJSON(w, r, http.StatusOK, getPersonsResponse{Persons: persons})
+}
+
+func convertInputToGetFilters(ctx context.Context, data *service.GetFilters, input *getPersonsRequest) {
 	if input.Name != "" {
 		data.Name = &input.Name
 	}
@@ -112,7 +126,7 @@ func (h *Handler) getPersons(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if input.Age != 0 {
-		logger.DebugKV(r.Context(), "get persons request", "age", input.Age)
+		logger.DebugKV(ctx, "get persons request", "age", input.Age)
 		data.Age = &input.Age
 	}
 
@@ -126,16 +140,6 @@ func (h *Handler) getPersons(w http.ResponseWriter, r *http.Request) {
 
 	data.Limit = int64(input.Limit)
 	data.Offset = (int64(input.Page) - 1) * data.Limit
-
-	logger.DebugKV(r.Context(), "get persons request", "input filters", data)
-
-	persons, err := h.service.GetPersons(r.Context(), data)
-	if err != nil {
-		renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
-		return
-	}
-
-	renderJSON(w, r, http.StatusOK, getPersonsResponse{Persons: persons})
 }
 
 // @Summary Update persons
@@ -176,7 +180,7 @@ func (h *Handler) updatePerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderJSON(w, r, http.StatusAccepted, successResponse{Message: "note updated successfully"})
+	renderJSON(w, r, http.StatusAccepted, successResponse{Message: "person updated successfully"})
 }
 
 // @Summary Delete person
@@ -191,19 +195,18 @@ func (h *Handler) updatePerson(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) deletePerson(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(mux.Vars(r)["id"])
 	if id == 0 {
-		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidQueryId.Error()})
+		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidInput.Error()})
 		return
 	}
 
 	if err := h.service.Delete(r.Context(), id); err != nil {
 		if errors.Is(err, entity.ErrPersonNotExists) {
 			renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrPersonNotExists.Error()})
-			return
 		} else {
 			renderJSON(w, r, http.StatusInternalServerError, errorResponse{err.Error()})
-			return
 		}
+		return
 	}
 
-	renderJSON(w, r, http.StatusOK, successResponse{Message: "note deleted succesfully"})
+	renderJSON(w, r, http.StatusOK, successResponse{Message: "person deleted succesfully"})
 }

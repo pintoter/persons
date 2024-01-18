@@ -17,3 +17,8 @@ func New(db *sql.DB) *DBRepo {
 		db: db,
 	}
 }
+
+// Create address of const value for test Get and Update methods
+func GetAddress[T any](x T) *T {
+	return &x
+}

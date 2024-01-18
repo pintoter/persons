@@ -54,8 +54,8 @@ func Run() {
 	httpClient := client.New(&cfg.Client)
 
 	service := service.New(repo, httpClient)
-	handler := transport.NewHandler(service, &cfg.HTTP)
-	server := server.New(&cfg.HTTP, handler)
+	handler := transport.NewHandler(service)
+	server := server.New(handler, &cfg.HTTP)
 
 	server.Run()
 	logger.InfoKV(ctx, "Starting server")
@@ -99,6 +99,6 @@ func initLogger(ctx context.Context, cfg *config.Config) (syncFn func()) {
 	))
 
 	return func() {
-		notSuggaredLogger.Sync()
+		_ = notSuggaredLogger.Sync()
 	}
 }

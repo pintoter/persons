@@ -8,16 +8,12 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 )
 
-type Config interface {
-	GetAddr() string
-}
-
 type Handler struct {
 	router  *mux.Router
 	service *service.Service
 }
 
-func NewHandler(service *service.Service, cfg Config) *Handler {
+func NewHandler(service *service.Service) *Handler {
 	handler := &Handler{
 		router:  mux.NewRouter(),
 		service: service,

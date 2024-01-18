@@ -19,7 +19,7 @@ type Config interface {
 	GetShutdownTimeout() time.Duration
 }
 
-func New(cfg Config, handler http.Handler) *Server {
+func New(handler http.Handler, cfg Config) *Server {
 	return &Server{
 		httpServer: &http.Server{
 			Addr:         cfg.GetAddr(),

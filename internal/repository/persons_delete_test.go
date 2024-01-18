@@ -2,16 +2,16 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"log"
 	"regexp"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/pintoter/todo-list/internal/entity"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUpdateNote(t *testing.T) {
+func Test_Delete(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		log.Fatal(err)
@@ -21,11 +21,7 @@ func TestUpdateNote(t *testing.T) {
 	r := New(db)
 
 	type args struct {
-		id          int
-		userId      int
-		title       string
-		description string
-		status      string
+		id int
 	}
 
 	type mockBehavior func(args args)
@@ -39,40 +35,31 @@ func TestUpdateNote(t *testing.T) {
 		{
 			name: "Success",
 			args: args{
-				id:          1,
-				userId:      1,
-				title:       "Test title NEW",
-				description: "Test description NEW",
-				status:      entity.StatusDone,
+				id: 1,
 			},
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedQuery := "UPDATE notes SET title = $1, description = $2, status = $3 WHERE id = $4 AND user_id = $5"
+				expectedQuery := "DELETE FROM persons WHERE id = $1"
 				mock.ExpectExec(regexp.QuoteMeta(expectedQuery)).
-					WithArgs(args.title, args.description, args.status, args.id, args.userId).
+					WithArgs(args.id).
 					WillReturnResult(sqlmock.NewResult(0, 1))
 
 				mock.ExpectCommit()
 			},
-			wantErr: false,
 		},
 		{
 			name: "Failed",
 			args: args{
-				id:          100,
-				userId:      1,
-				title:       "Test title NEW",
-				description: "Test description NEW",
-				status:      entity.StatusDone,
+				id: 100,
 			},
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedQuery := "UPDATE notes SET title = $1, description = $2, status = $3 WHERE id = $4 AND user_id = $5"
+				expectedQuery := "DELETE FROM persons WHERE id = $1"
 				mock.ExpectExec(regexp.QuoteMeta(expectedQuery)).
-					WithArgs(args.title, args.description, args.status, args.id, args.userId).
-					WillReturnResult(sqlmock.NewResult(0, 1))
+					WithArgs(args.id).
+					WillReturnError(errors.New("new error"))
 
 				mock.ExpectRollback()
 			},
@@ -83,13 +70,14 @@ func TestUpdateNote(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockBehavior(tt.args)
-			err := r.UpdateNote(context.Background(), tt.args.id, tt.args.userId, tt.args.title, tt.args.description, tt.args.status)
 
+			err := r.Delete(context.Background(), tt.args.id)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
+			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
 }

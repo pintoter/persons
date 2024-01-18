@@ -49,7 +49,7 @@ test:
 	make --silent test-cover
 
 .PHONY: test-cover
-test-cover:
+test-cover: test
 	go tool cover -html cover.out -o cover.html
 	open cover.html
 

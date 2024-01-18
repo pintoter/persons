@@ -51,34 +51,34 @@ func (r *DBRepo) GetPerson(ctx context.Context, id int) (entity.Person, error) {
 	return person, tx.Commit()
 }
 
-func getNotesBuilder(data *service.RequestFilters) (string, []interface{}, error) {
+func getPersonsBuilder(data *service.GetFilters) (string, []interface{}, error) {
 	builder := sq.Select("id", "name", "surname", "patronymic", "age", "gender", "nationalize").
 		From(persons).
 		OrderBy("id ASC").
 		PlaceholderFormat(sq.Dollar)
 
 	if data.Name != nil {
-		builder = builder.Where(sq.Eq{"name": *(data.Name)})
+		builder = builder.Where(sq.Eq{"name": *data.Name})
 	}
 
 	if data.Surname != nil {
-		builder = builder.Where(sq.Eq{"surname": *(data.Surname)})
+		builder = builder.Where(sq.Eq{"surname": *data.Surname})
 	}
 
 	if data.Patronymic != nil {
-		builder = builder.Where(sq.Eq{"patronymic": *(data.Patronymic)})
+		builder = builder.Where(sq.Eq{"patronymic": *data.Patronymic})
 	}
 
 	if data.Age != nil {
-		builder = builder.Where(sq.Eq{"age": *(data.Age)})
+		builder = builder.Where(sq.Eq{"age": *data.Age})
 	}
 
 	if data.Gender != nil {
-		builder = builder.Where(sq.Eq{"gender": *(data.Gender)})
+		builder = builder.Where(sq.Eq{"gender": *data.Gender})
 	}
 
 	if data.Nationalize != nil {
-		builder = builder.Where(sq.Eq{"nationalize": *(data.Nationalize)})
+		builder = builder.Where(sq.Eq{"nationalize": *data.Nationalize})
 	}
 
 	builder = builder.Limit(uint64(data.Limit)).Offset(uint64(data.Offset))
@@ -86,7 +86,7 @@ func getNotesBuilder(data *service.RequestFilters) (string, []interface{}, error
 	return builder.ToSql()
 }
 
-func (r *DBRepo) GetPersons(ctx context.Context, data *service.RequestFilters) ([]entity.Person, error) {
+func (r *DBRepo) GetPersons(ctx context.Context, data *service.GetFilters) ([]entity.Person, error) {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted,
 		ReadOnly:  false,
@@ -96,7 +96,7 @@ func (r *DBRepo) GetPersons(ctx context.Context, data *service.RequestFilters) (
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	query, args, err := getNotesBuilder(data)
+	query, args, err := getPersonsBuilder(data)
 	if err != nil {
 		return nil, err
 	}

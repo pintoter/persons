@@ -9,3 +9,7 @@
 
 # Debug
 .vscode
+
+# Coverage
+cover.html
+cover.out

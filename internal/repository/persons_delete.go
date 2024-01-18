@@ -7,7 +7,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 )
 
-func getDeleteByIdQuery(id int) (string, []interface{}, error) {
+func deleteQuery(id int) (string, []interface{}, error) {
 	builder := sq.Delete(persons).
 		Where(sq.Eq{"id": id}).
 		PlaceholderFormat(sq.Dollar)
@@ -25,7 +25,7 @@ func (r *DBRepo) Delete(ctx context.Context, id int) error {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	query, args, err := getDeleteByIdQuery(id)
+	query, args, err := deleteQuery(id)
 	if err != nil {
 		return err
 	}

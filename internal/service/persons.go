@@ -19,7 +19,7 @@ func (s *Service) Create(ctx context.Context, person entity.Person) (int, error)
 	go func() {
 		defer wg.Done()
 		var err error
-		person.Age, err = s.gen.GenerateAge(ctx, person.Name)
+		person.Age, err = s.GenerateAge(ctx, person.Name)
 		logger.DebugKV(ctx, "generate age", "age", person.Age, "err", err)
 		if err != nil {
 			errChan <- entity.ErrInvalidInput
@@ -29,7 +29,7 @@ func (s *Service) Create(ctx context.Context, person entity.Person) (int, error)
 	go func() {
 		defer wg.Done()
 		var err error
-		person.Gender, err = s.gen.GenerateGender(ctx, person.Name)
+		person.Gender, err = s.GenerateGender(ctx, person.Name)
 		logger.DebugKV(ctx, "generate gender", "gender", person.Gender, "err", err)
 		if err != nil {
 			errChan <- entity.ErrInvalidInput
@@ -39,7 +39,7 @@ func (s *Service) Create(ctx context.Context, person entity.Person) (int, error)
 	go func() {
 		defer wg.Done()
 		var err error
-		person.Nationalize, err = s.gen.GenerateNationalize(ctx, person.Name)
+		person.Nationalize, err = s.GenerateNationalize(ctx, person.Name)
 		logger.DebugKV(ctx, "generate gender", "nationalize", person.Nationalize, "err", err)
 		if err != nil {
 			errChan <- entity.ErrInvalidInput
@@ -57,7 +57,7 @@ func (s *Service) Create(ctx context.Context, person entity.Person) (int, error)
 		}
 	}
 
-	id, err := s.repo.Create(ctx, person)
+	id, err := s.Create(ctx, person)
 	if err != nil {
 		return 0, err
 	}
@@ -66,7 +66,7 @@ func (s *Service) Create(ctx context.Context, person entity.Person) (int, error)
 }
 
 func (s *Service) GetPerson(ctx context.Context, id int) (entity.Person, error) {
-	person, err := s.repo.GetPerson(ctx, id)
+	person, err := s.GetPerson(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return entity.Person{}, entity.ErrPersonNotExists
@@ -78,7 +78,7 @@ func (s *Service) GetPerson(ctx context.Context, id int) (entity.Person, error) 
 	return person, nil
 }
 
-type RequestFilters struct {
+type GetFilters struct {
 	Name        *string
 	Surname     *string
 	Patronymic  *string
@@ -89,8 +89,8 @@ type RequestFilters struct {
 	Offset      int64
 }
 
-func (s *Service) GetPersons(ctx context.Context, filters *RequestFilters) ([]entity.Person, error) {
-	persons, err := s.repo.GetPersons(ctx, filters)
+func (s *Service) GetPersons(ctx context.Context, filters *GetFilters) ([]entity.Person, error) {
+	persons, err := s.GetPersons(ctx, filters)
 	if err != nil {
 		return nil, entity.ErrInternalService
 	}
@@ -112,7 +112,7 @@ func (s *Service) Update(ctx context.Context, id int, params *UpdateParams) erro
 		return entity.ErrPersonNotExists
 	}
 
-	return s.repo.Update(ctx, id, params)
+	return s.Update(ctx, id, params)
 }
 
 func (s *Service) Delete(ctx context.Context, id int) error {
@@ -120,11 +120,11 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return entity.ErrPersonNotExists
 	}
 
-	return s.repo.Delete(ctx, id)
+	return s.Delete(ctx, id)
 }
 
 func (s *Service) isPersonExists(ctx context.Context, id int) bool {
-	_, err := s.repo.GetPerson(ctx, id)
+	_, err := s.GetPerson(ctx, id)
 
 	return err == nil
 }

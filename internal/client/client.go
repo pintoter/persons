@@ -43,7 +43,8 @@ func (c *Client) GenerateAge(ctx context.Context, name string) (int, error) {
 	}
 
 	contract := new(getAgeContract)
-	if err := json.Unmarshal(data, contract); err != nil {
+	err = json.Unmarshal(data, contract)
+	if err != nil {
 		return 0, err
 	}
 
@@ -61,7 +62,8 @@ func (c *Client) GenerateGender(ctx context.Context, name string) (string, error
 	}
 
 	contract := new(getGenderContract)
-	if err := json.Unmarshal(data, contract); err != nil {
+	err = json.Unmarshal(data, contract)
+	if err != nil {
 		return "", err
 	}
 
@@ -70,7 +72,7 @@ func (c *Client) GenerateGender(ctx context.Context, name string) (string, error
 
 type getNationalizeContract struct {
 	Country []struct {
-		Country_id string `json:"country_id"`
+		CountryId string `json:"country_id"`
 	} `json:"country"`
 }
 
@@ -81,7 +83,8 @@ func (c *Client) GenerateNationalize(ctx context.Context, name string) (string, 
 	}
 
 	contract := new(getNationalizeContract)
-	if err := json.Unmarshal(data, contract); err != nil {
+	err = json.Unmarshal(data, contract)
+	if err != nil {
 		return "", err
 	}
 
@@ -89,7 +92,7 @@ func (c *Client) GenerateNationalize(ctx context.Context, name string) (string, 
 		return "", err
 	}
 
-	return contract.Country[0].Country_id, nil
+	return contract.Country[0].CountryId, nil
 }
 
 func (c *Client) requestExecutor(ctx context.Context, url string) ([]byte, error) {
