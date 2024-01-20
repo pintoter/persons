@@ -10,54 +10,59 @@ import (
 	"github.com/pintoter/persons/pkg/logger"
 )
 
-func (s *Service) Create(ctx context.Context, person entity.Person) (int, error) {
+func (s *Service) CreatePerson(ctx context.Context, person entity.Person) (int, error) {
+	layer := "service.Create"
+
 	var wg sync.WaitGroup
 
 	errChan := make(chan error, 1)
 
-	wg.Add(3)
 	go func() {
-		defer wg.Done()
-		var err error
-		person.Age, err = s.GenerateAge(ctx, person.Name)
-		logger.DebugKV(ctx, "generate age", "age", person.Age, "err", err)
-		if err != nil {
-			errChan <- entity.ErrInvalidInput
-		}
-	}()
+		wg.Add(3)
+		go func() {
+			defer wg.Done()
+			var err error
+			person.Age, err = s.gen.GenerateAge(ctx, person.Name)
+			logger.DebugKV(ctx, "generate age", "layer", layer, "age", person.Age, "err", err)
+			if err != nil {
+				errChan <- entity.ErrInvalidInput
+			}
+		}()
 
-	go func() {
-		defer wg.Done()
-		var err error
-		person.Gender, err = s.GenerateGender(ctx, person.Name)
-		logger.DebugKV(ctx, "generate gender", "gender", person.Gender, "err", err)
-		if err != nil {
-			errChan <- entity.ErrInvalidInput
-		}
-	}()
+		go func() {
+			defer wg.Done()
+			var err error
+			person.Gender, err = s.gen.GenerateGender(ctx, person.Name)
+			logger.DebugKV(ctx, "generate gender", "layer", layer, "gender", person.Gender, "err", err)
+			if err != nil {
+				errChan <- entity.ErrInvalidInput
+			}
+		}()
 
-	go func() {
-		defer wg.Done()
-		var err error
-		person.Nationalize, err = s.GenerateNationalize(ctx, person.Name)
-		logger.DebugKV(ctx, "generate gender", "nationalize", person.Nationalize, "err", err)
-		if err != nil {
-			errChan <- entity.ErrInvalidInput
-		}
-	}()
+		go func() {
+			defer wg.Done()
+			var err error
+			person.Nationalize, err = s.gen.GenerateNationalize(ctx, person.Name)
+			logger.DebugKV(ctx, "generate nationalize", "layer", layer, "nationalize", person.Nationalize, "err", err)
+			if err != nil {
+				errChan <- entity.ErrInvalidInput
+			}
+		}()
 
-	go func() {
 		wg.Wait()
 		close(errChan)
 	}()
 
 	for err := range errChan {
+		logger.DebugKV(ctx, "read errchan", "layer", layer, "err", err)
 		if err != nil {
 			return 0, err
 		}
 	}
 
-	id, err := s.Create(ctx, person)
+	logger.DebugKV(ctx, "person create for inserting DB", "layer", layer, "person", person)
+	id, err := s.repo.Create(ctx, person)
+	logger.DebugKV(ctx, "result of inserting DB", "layer", layer, "id", id, "err", err)
 	if err != nil {
 		return 0, err
 	}
@@ -66,7 +71,7 @@ func (s *Service) Create(ctx context.Context, person entity.Person) (int, error)
 }
 
 func (s *Service) GetPerson(ctx context.Context, id int) (entity.Person, error) {
-	person, err := s.GetPerson(ctx, id)
+	person, err := s.repo.GetPerson(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return entity.Person{}, entity.ErrPersonNotExists
@@ -90,7 +95,10 @@ type GetFilters struct {
 }
 
 func (s *Service) GetPersons(ctx context.Context, filters *GetFilters) ([]entity.Person, error) {
-	persons, err := s.GetPersons(ctx, filters)
+	layer := "service.GetPersons"
+
+	persons, err := s.repo.GetPersons(ctx, filters)
+	logger.DebugKV(ctx, "get persons request", "layer", layer, "persons", persons)
 	if err != nil {
 		return nil, entity.ErrInternalService
 	}
@@ -112,7 +120,7 @@ func (s *Service) Update(ctx context.Context, id int, params *UpdateParams) erro
 		return entity.ErrPersonNotExists
 	}
 
-	return s.Update(ctx, id, params)
+	return s.repo.Update(ctx, id, params)
 }
 
 func (s *Service) Delete(ctx context.Context, id int) error {
@@ -120,11 +128,11 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 		return entity.ErrPersonNotExists
 	}
 
-	return s.Delete(ctx, id)
+	return s.repo.Delete(ctx, id)
 }
 
 func (s *Service) isPersonExists(ctx context.Context, id int) bool {
-	_, err := s.GetPerson(ctx, id)
+	_, err := s.repo.GetPerson(ctx, id)
 
 	return err == nil
 }

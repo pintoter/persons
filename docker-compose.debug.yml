@@ -1,0 +1,47 @@
+version: '3.9'
+
+services:
+  persons-app:
+    container_name: persons-app-debug
+    build:
+      context: .
+      dockerfile: Dockerfile.debug
+    env_file: 
+      - .env
+    ports:
+      - "8080:8080"
+      - "2345:2345"
+    volumes:
+      - ./bin/:/root/.bin/
+      - ./configs/:/root/configs/
+    depends_on:
+      - postgres
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+    networks:
+      - persons-backend
+    restart: unless-stopped
+
+  postgres:
+    container_name: persons-db
+    image: postgres:latest
+    hostname: postgres
+    env_file: 
+      - .env
+    ports:
+      - "${LOCAL_DB_PORT}:${DB_PORT}"
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    restart: on-failure
+    networks:
+      - persons-backend
+
+networks:
+  persons-backend:
+    driver: bridge
+
+volumes:
+  pg-data:
+  

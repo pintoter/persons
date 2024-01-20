@@ -22,7 +22,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "notes"
+                    "persons"
                 ],
                 "summary": "Delete person",
                 "parameters": [
@@ -343,7 +343,7 @@ const docTemplate = `{
         "transport.getPersonsResponse": {
             "type": "object",
             "properties": {
-                "person": {
+                "persons": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/entity.Person"

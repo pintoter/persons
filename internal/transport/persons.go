@@ -1,7 +1,6 @@
 package transport
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,7 +29,7 @@ func (h *Handler) createPerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := h.service.Create(r.Context(), entity.Person{
+	id, err := h.service.CreatePerson(r.Context(), entity.Person{
 		Name:       input.Name,
 		Surname:    input.Surname,
 		Patronymic: input.Patronymic,
@@ -99,7 +98,7 @@ func (h *Handler) getPersons(w http.ResponseWriter, r *http.Request) {
 	logger.DebugKV(r.Context(), "get persons request", "input", input)
 
 	data := &service.GetFilters{}
-	convertInputToGetFilters(r.Context(), data, &input)
+	convertInputToGetFilters(data, &input)
 
 	logger.DebugKV(r.Context(), "get persons request", "input filters", data)
 
@@ -112,7 +111,7 @@ func (h *Handler) getPersons(w http.ResponseWriter, r *http.Request) {
 	renderJSON(w, r, http.StatusOK, getPersonsResponse{Persons: persons})
 }
 
-func convertInputToGetFilters(ctx context.Context, data *service.GetFilters, input *getPersonsRequest) {
+func convertInputToGetFilters(data *service.GetFilters, input *getPersonsRequest) {
 	if input.Name != "" {
 		data.Name = &input.Name
 	}
@@ -126,7 +125,6 @@ func convertInputToGetFilters(ctx context.Context, data *service.GetFilters, inp
 	}
 
 	if input.Age != 0 {
-		logger.DebugKV(ctx, "get persons request", "age", input.Age)
 		data.Age = &input.Age
 	}
 
@@ -157,7 +155,7 @@ func (h *Handler) updatePerson(w http.ResponseWriter, r *http.Request) {
 	var input updatePersonInput
 	var err error
 	if err = input.Set(r); err != nil {
-		renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrInvalidInput.Error()})
+		renderJSON(w, r, http.StatusBadRequest, errorResponse{err.Error()})
 		return
 	}
 
@@ -185,7 +183,7 @@ func (h *Handler) updatePerson(w http.ResponseWriter, r *http.Request) {
 
 // @Summary Delete person
 // @Description Delete person by id
-// @Tags notes
+// @Tags persons
 // @Produce json
 // @Param id path int true "id"
 // @Success 200 {object} successResponse

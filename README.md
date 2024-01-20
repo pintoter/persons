@@ -246,7 +246,7 @@ curl -X 'DELETE' \
 * Request example:
 ```shell
 curl -X 'GET' \
-  'http://localhost:8080/api/v1/persons/?nationalize=RU&page=1&limit=5' \
+  'http://localhost:8080/api/v1/persons?nationalize=RU&page=1&limit=5' \
   -H 'accept: application/json'
 ```
 * Response example:

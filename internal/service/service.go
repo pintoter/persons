@@ -23,13 +23,13 @@ type Generator interface {
 }
 
 type Service struct {
-	Repository
-	Generator
+	repo Repository
+	gen  Generator
 }
 
 func New(repo Repository, gen Generator) *Service {
 	return &Service{
-		Repository: repo,
-		Generator:  gen,
+		repo: repo,
+		gen:  gen,
 	}
 }

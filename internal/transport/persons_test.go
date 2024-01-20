@@ -2,15 +2,15 @@ package transport
 
 import (
 	"bytes"
-	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/gorilla/mux"
 	"github.com/pintoter/persons/internal/entity"
 	"github.com/pintoter/persons/internal/service"
 	mock_service "github.com/pintoter/persons/internal/service/mocks"
@@ -67,23 +67,15 @@ func Test_CreatePersonHandler(t *testing.T) {
 			gen := mock_service.NewMockGenerator(c)
 			tt.mockBehavior(repo, gen, tt.inputPerson)
 
-			service := &service.Service{
-				Repository: repo,
-				Generator:  gen,
-			}
+			service := service.New(repo, gen)
 
-			handler := Handler{}
-			handler.service = service
-
-			// Init endpoint
-			mux := mux.NewRouter()
-			mux.HandleFunc("/persons", handler.createPerson).Methods(http.MethodPost)
+			handler := NewHandler(service)
 
 			// Create request
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("POST", "/persons", bytes.NewBufferString(tt.inputBody))
+			r := httptest.NewRequest("POST", "/api/v1/persons", bytes.NewBufferString(tt.inputBody))
 
-			mux.ServeHTTP(w, r)
+			handler.ServeHTTP(w, r)
 
 			assert.Equal(t, w.Code, tt.expectedStatusCode)
 			assert.Equal(t, w.Body.String(), tt.expectedResponseBody)
@@ -92,7 +84,7 @@ func Test_CreatePersonHandler(t *testing.T) {
 }
 
 func Test_GetPersonHandler(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockRepository, id int)
+	type mockBehavior func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int)
 
 	tests := []struct {
 		name                 string
@@ -104,8 +96,8 @@ func Test_GetPersonHandler(t *testing.T) {
 		{
 			name:    "Ok",
 			inputId: 1,
-			mockBehavior: func(s *mock_service.MockRepository, id int) {
-				s.EXPECT().GetPerson(context.Background(), id).Return(entity.Person{
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+				s.EXPECT().GetPerson(gomock.Any(), id).Return(entity.Person{
 					ID:          1,
 					Name:        "name",
 					Surname:     "surname",
@@ -132,8 +124,8 @@ func Test_GetPersonHandler(t *testing.T) {
 		{
 			name:    "FailedNotExist",
 			inputId: 2,
-			mockBehavior: func(s *mock_service.MockRepository, id int) {
-				s.EXPECT().GetPerson(context.Background(), id).Return(entity.Person{}, entity.ErrPersonNotExists)
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+				s.EXPECT().GetPerson(gomock.Any(), id).Return(entity.Person{}, sql.ErrNoRows)
 			},
 			expectedStatusCode: http.StatusNotFound,
 			expectedResponseBody: func() string {
@@ -144,12 +136,14 @@ func Test_GetPersonHandler(t *testing.T) {
 			}(),
 		},
 		{
-			name:               "FailedWithId",
-			inputId:            0,
+			name:    "FailedWithId",
+			inputId: 0,
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+			},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(errorResponse{
-					Err: entity.ErrPersonNotExists.Error(),
+					Err: entity.ErrInvalidInput.Error(),
 				}, "", "    ")
 				return string(resp)
 			}(),
@@ -157,10 +151,10 @@ func Test_GetPersonHandler(t *testing.T) {
 		{
 			name:    "FailedWithErr",
 			inputId: 2,
-			mockBehavior: func(s *mock_service.MockRepository, id int) {
-				s.EXPECT().GetPerson(context.Background(), id).Return(entity.Person{}, entity.ErrPersonNotExists)
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+				s.EXPECT().GetPerson(gomock.Any(), id).Return(entity.Person{}, sql.ErrNoRows)
 			},
-			expectedStatusCode: http.StatusInternalServerError,
+			expectedStatusCode: http.StatusNotFound,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(errorResponse{
 					Err: entity.ErrPersonNotExists.Error(),
@@ -176,23 +170,17 @@ func Test_GetPersonHandler(t *testing.T) {
 			defer c.Finish()
 
 			repo := mock_service.NewMockRepository(c)
-			tt.mockBehavior(repo, tt.inputId)
+			gen := mock_service.NewMockGenerator(c)
+			tt.mockBehavior(repo, gen, tt.inputId)
 
-			service := &service.Service{
-				Repository: repo,
-			}
+			service := service.New(repo, gen)
 
-			handler := &Handler{
-				service: service,
-			}
-
-			mux := mux.NewRouter()
-			mux.HandleFunc("/persons/{id}", handler.getPerson).Methods(http.MethodGet)
+			handler := NewHandler(service)
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", "/persons/1", nil)
+			r := httptest.NewRequest("GET", "/api/v1/persons/"+fmt.Sprintf("%d", tt.inputId), nil)
 
-			mux.ServeHTTP(w, r)
+			handler.ServeHTTP(w, r)
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
 			assert.Equal(t, tt.expectedResponseBody, w.Body.String())
@@ -201,7 +189,7 @@ func Test_GetPersonHandler(t *testing.T) {
 }
 
 func Test_GetPersonsHandler(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockRepository, data *service.GetFilters)
+	type mockBehavior func(s *mock_service.MockRepository, g *mock_service.MockGenerator)
 
 	tests := []struct {
 		name                 string
@@ -212,9 +200,9 @@ func Test_GetPersonsHandler(t *testing.T) {
 	}{
 		{
 			name: "Ok",
-			path: "/?nationalize=RU",
-			mockBehavior: func(s *mock_service.MockRepository, data *service.GetFilters) {
-				s.EXPECT().GetPersons(context.Background(), data).Return(
+			path: "?nationalize=RU",
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator) {
+				s.EXPECT().GetPersons(gomock.Any(), gomock.Any()).Return(
 					[]entity.Person{
 						{
 							ID:          1,
@@ -262,9 +250,9 @@ func Test_GetPersonsHandler(t *testing.T) {
 		},
 		{
 			name: "Ok2",
-			path: "/?name=name",
-			mockBehavior: func(s *mock_service.MockRepository, data *service.GetFilters) {
-				s.EXPECT().GetPersons(context.Background(), data).Return(
+			path: "?name=name",
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator) {
+				s.EXPECT().GetPersons(gomock.Any(), gomock.Any()).Return(
 					[]entity.Person{
 						{
 							ID:          1,
@@ -299,7 +287,7 @@ func Test_GetPersonsHandler(t *testing.T) {
 						Nationalize: "RU",
 					}, {
 						ID:          2,
-						Name:        "name1",
+						Name:        "name",
 						Surname:     "surname1",
 						Patronymic:  "patronymic1",
 						Age:         19,
@@ -312,21 +300,23 @@ func Test_GetPersonsHandler(t *testing.T) {
 		},
 		{
 			name: "FailedWithErr",
-			mockBehavior: func(s *mock_service.MockRepository, data *service.GetFilters) {
-				s.EXPECT().GetPersons(context.Background(), data).Return(nil, errors.New("any error"))
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator) {
+				s.EXPECT().GetPersons(gomock.Any(), gomock.Any()).Return(nil, errors.New("any error"))
 			},
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(errorResponse{
-					Err: "any error",
+					Err: entity.ErrInternalService.Error(),
 				}, "", "    ")
 				return string(resp)
 			}(),
 		},
 		{
-			name:               "FailedWithErr2",
-			path:               "/?gender=mala",
-			expectedStatusCode: http.StatusInternalServerError,
+			name: "FailedWithErr2",
+			path: "?gender=mala",
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator) {
+			},
+			expectedStatusCode: http.StatusBadRequest,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(errorResponse{
 					Err: entity.ErrInvalidInput.Error(),
@@ -341,25 +331,18 @@ func Test_GetPersonsHandler(t *testing.T) {
 			c := gomock.NewController(t)
 			defer c.Finish()
 
-			filters := &service.GetFilters{}
 			repo := mock_service.NewMockRepository(c)
-			tt.mockBehavior(repo, filters)
+			gen := mock_service.NewMockGenerator(c)
+			tt.mockBehavior(repo, gen)
 
-			service := &service.Service{
-				Repository: repo,
-			}
+			service := service.New(repo, gen)
 
-			handler := &Handler{
-				service: service,
-			}
-
-			mux := mux.NewRouter()
-			mux.HandleFunc("/persons", handler.getPersons).Methods(http.MethodGet)
+			handler := NewHandler(service)
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", "/notes"+tt.path, nil)
+			r := httptest.NewRequest("GET", "/api/v1/persons"+tt.path, nil)
 
-			mux.ServeHTTP(w, r)
+			handler.ServeHTTP(w, r)
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
 			assert.Equal(t, tt.expectedResponseBody, w.Body.String())
@@ -368,31 +351,32 @@ func Test_GetPersonsHandler(t *testing.T) {
 }
 
 func Test_Delete(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockRepository, id int)
+	type mockBehavior func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int)
 
 	tests := []struct {
 		name                 string
-		path                 string
+		id                   int
 		mockBehavior         mockBehavior
 		expectedStatusCode   int
 		expectedResponseBody string
 	}{
 		{
 			name: "Ok",
-			path: "1",
-			mockBehavior: func(s *mock_service.MockRepository, id int) {
-				s.EXPECT().Delete(context.Background(), id).Return(nil)
+			id:   1,
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+				s.EXPECT().GetPerson(gomock.Any(), id).Return(entity.Person{}, nil)
+				s.EXPECT().Delete(gomock.Any(), id).Return(nil)
 			},
 			expectedStatusCode: http.StatusOK,
 			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(successResponse{Message: "note deleted succesfully"}, "", "    ")
+				resp, _ := json.MarshalIndent(successResponse{Message: "person deleted succesfully"}, "", "    ")
 				return string(resp)
 			}(),
 		},
 		{
 			name:               "FailedWithInput",
-			path:               "0",
-			mockBehavior:       func(s *mock_service.MockRepository, id int) {},
+			id:                 0,
+			mockBehavior:       func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(errorResponse{Err: entity.ErrInvalidInput.Error()}, "", "    ")
@@ -401,9 +385,9 @@ func Test_Delete(t *testing.T) {
 		},
 		{
 			name: "FailedWithNoPerson",
-			path: "5",
-			mockBehavior: func(s *mock_service.MockRepository, id int) {
-				s.EXPECT().Delete(context.Background(), id).Return(entity.ErrPersonNotExists)
+			id:   5,
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+				s.EXPECT().GetPerson(gomock.Any(), id).Return(entity.Person{}, sql.ErrNoRows)
 			},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponseBody: func() string {
@@ -419,23 +403,17 @@ func Test_Delete(t *testing.T) {
 			defer c.Finish()
 
 			repo := mock_service.NewMockRepository(c)
-			tt.mockBehavior(repo, 1)
+			gen := mock_service.NewMockGenerator(c)
+			tt.mockBehavior(repo, gen, tt.id)
 
-			service := &service.Service{
-				Repository: repo,
-			}
+			service := service.New(repo, gen)
 
-			handler := &Handler{
-				service: service,
-			}
-
-			mux := mux.NewRouter()
-			mux.HandleFunc("/note/{id}", handler.deletePerson).Methods(http.MethodDelete)
+			handler := NewHandler(service)
 
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("DELETE", "/persons/"+tt.path, nil)
+			r := httptest.NewRequest("DELETE", "/api/v1/persons/"+fmt.Sprintf("%d", tt.id), nil)
 
-			mux.ServeHTTP(w, r)
+			handler.ServeHTTP(w, r)
 
 			assert.Equal(t, tt.expectedStatusCode, w.Code)
 			assert.Equal(t, tt.expectedResponseBody, w.Body.String())
@@ -443,53 +421,50 @@ func Test_Delete(t *testing.T) {
 	}
 }
 
-func TestUpdateNoteHandler(t *testing.T) {
-	type mockBehavior func(s *mock_service.MockRepository, id int, params *service.UpdateParams)
+func Test_Update(t *testing.T) {
+	type mockBehavior func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int)
 
 	tests := []struct {
 		name                 string
 		id                   int
-		params               *service.UpdateParams
 		inputBody            string
 		mockBehavior         mockBehavior
 		expectedStatusCode   int
 		expectedResponseBody string
 	}{
 		{
-			name: "Ok",
-			id:   1,
-			inputBody: `{
-					"name": "Ivan",
-				}`,
-			mockBehavior: func(s *mock_service.MockRepository, id int, params *service.UpdateParams) {
-				s.EXPECT().Update(context.Background(), id, params).Return(nil)
+			name:      "Ok",
+			id:        1,
+			inputBody: `{"name": "Ivan"}`,
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+				s.EXPECT().GetPerson(gomock.Any(), id).Return(entity.Person{}, nil)
+				s.EXPECT().Update(gomock.Any(), id, gomock.Any()).Return(nil)
 			},
 			expectedStatusCode: http.StatusAccepted,
 			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(successResponse{Message: "note updated successfully"}, "", "    ")
+				resp, _ := json.MarshalIndent(successResponse{Message: "person updated successfully"}, "", "    ")
 				return string(resp)
 			}(),
 		},
 		{
-			name: "Failed",
-			id:   0,
-			inputBody: `{
-					"name": "Ivan",
-				}`,
-			mockBehavior:       func(s *mock_service.MockRepository, id int, params *service.UpdateParams) {},
+			name:      "Failed",
+			id:        0,
+			inputBody: `{"name": "Ivan"}`,
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+			},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponseBody: func() string {
-				resp, _ := json.MarshalIndent(errorResponse{Err: entity.ErrInvalidInput.Error()}, "", "    ")
+				resp, _ := json.MarshalIndent(errorResponse{Err: entity.ErrInvalidQueryId.Error()}, "", "    ")
 				return string(resp)
 			}(),
 		},
 		{
-			name: "FailedWithId",
-			id:   5,
-			inputBody: `{
-					"name": "Ivan",
-				}`,
-			mockBehavior:       func(s *mock_service.MockRepository, id int, params *service.UpdateParams) {},
+			name:      "FailedWithId",
+			id:        5,
+			inputBody: `{"name": "Ivan"}`,
+			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
+				s.EXPECT().GetPerson(gomock.Any(), id).Return(entity.Person{}, sql.ErrNoRows)
+			},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(errorResponse{Err: entity.ErrPersonNotExists.Error()}, "", "    ")
@@ -504,25 +479,18 @@ func TestUpdateNoteHandler(t *testing.T) {
 			defer c.Finish()
 
 			repo := mock_service.NewMockRepository(c)
-			tt.mockBehavior(repo, tt.id, tt.params)
+			gen := mock_service.NewMockGenerator(c)
+			tt.mockBehavior(repo, gen, tt.id)
 
-			service := &service.Service{
-				Repository: repo,
-			}
+			service := service.New(repo, gen)
 
-			handler := &Handler{
-				service: service,
-			}
-
-			// Init endpoint
-			mux := mux.NewRouter()
-			mux.HandleFunc("/note/{id}", handler.updatePerson).Methods(http.MethodPatch)
+			handler := NewHandler(service)
 
 			// Create request
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("PATCH", "/note/1", bytes.NewBufferString(tt.inputBody))
+			r := httptest.NewRequest("PATCH", "/api/v1/persons/"+fmt.Sprintf("%d", tt.id), bytes.NewBufferString(tt.inputBody))
 
-			mux.ServeHTTP(w, r)
+			handler.ServeHTTP(w, r)
 
 			assert.Equal(t, w.Code, tt.expectedStatusCode)
 			assert.Equal(t, w.Body.String(), tt.expectedResponseBody)

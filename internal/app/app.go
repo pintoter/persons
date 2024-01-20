@@ -13,7 +13,7 @@ import (
 	"github.com/pintoter/persons/internal/client"
 	"github.com/pintoter/persons/internal/config"
 	migrations "github.com/pintoter/persons/internal/database"
-	"github.com/pintoter/persons/internal/repository"
+	dbrepo "github.com/pintoter/persons/internal/repository/db"
 	"github.com/pintoter/persons/internal/server"
 	"github.com/pintoter/persons/internal/service"
 	"github.com/pintoter/persons/internal/transport"
@@ -49,7 +49,7 @@ func Run() {
 		logger.FatalKV(ctx, "Failed connect database", "err", err)
 	}
 
-	repo := repository.New(db)
+	repo := dbrepo.New(db)
 
 	httpClient := client.New(&cfg.Client)
 

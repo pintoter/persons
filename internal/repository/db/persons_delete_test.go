@@ -1,4 +1,4 @@
-package repository
+package db
 
 import (
 	"context"
@@ -8,11 +8,10 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/pintoter/persons/internal/service"
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Update(t *testing.T) {
+func Test_Delete(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		log.Fatal(err)
@@ -22,8 +21,7 @@ func Test_Update(t *testing.T) {
 	r := New(db)
 
 	type args struct {
-		id     int
-		params *service.UpdateParams
+		id int
 	}
 
 	type mockBehavior func(args args)
@@ -38,37 +36,30 @@ func Test_Update(t *testing.T) {
 			name: "Success",
 			args: args{
 				id: 1,
-				params: &service.UpdateParams{
-					Age: GetAddress[int](5),
-				},
 			},
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedQuery := "UPDATE persons SET age = $1 WHERE id = $2"
+				expectedQuery := "DELETE FROM persons WHERE id = $1"
 				mock.ExpectExec(regexp.QuoteMeta(expectedQuery)).
-					WithArgs(args.params.Age, args.id).
+					WithArgs(args.id).
 					WillReturnResult(sqlmock.NewResult(0, 1))
 
 				mock.ExpectCommit()
 			},
-			wantErr: false,
 		},
 		{
 			name: "Failed",
 			args: args{
 				id: 100,
-				params: &service.UpdateParams{
-					Surname: GetAddress[string]("Ivanov"),
-				},
 			},
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedQuery := "UPDATE persons SET surname = $1 WHERE id = $2"
+				expectedQuery := "DELETE FROM persons WHERE id = $1"
 				mock.ExpectExec(regexp.QuoteMeta(expectedQuery)).
-					WithArgs(args.params.Surname, args.id).
-					WillReturnError(errors.New("some error"))
+					WithArgs(args.id).
+					WillReturnError(errors.New("new error"))
 
 				mock.ExpectRollback()
 			},
@@ -79,8 +70,8 @@ func Test_Update(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mockBehavior(tt.args)
-			err := r.Update(context.Background(), tt.args.id, tt.args.params)
 
+			err := r.Delete(context.Background(), tt.args.id)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

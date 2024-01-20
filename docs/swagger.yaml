@@ -44,7 +44,7 @@ definitions:
     type: object
   transport.getPersonsResponse:
     properties:
-      person:
+      persons:
         items:
           $ref: '#/definitions/entity.Person'
         type: array
@@ -98,7 +98,7 @@ paths:
             $ref: '#/definitions/transport.errorResponse'
       summary: Delete person
       tags:
-      - notes
+      - persons
   /api/v1/persons:
     get:
       description: Get all persons
