@@ -28,7 +28,7 @@
 
 ## Task
 
-* Implement the REST API service's Persons that will receive full name via API and enrich it from open APIs
+* Implement the REST API service's `Persons` that will receive full name via API and enrich it from open APIs
 answer with the most likely age, gender and nationality and save the data in database. 
 Upon request, provide information about found people. The following must be implemented 
 
@@ -36,7 +36,7 @@ Upon request, provide information about found people. The following must be impl
 1.1 Get persons with various filters and pagination;
 1.2 Delete by ID;
 1.3 Update by ID;
-1.4 Create perons;
+1.4 Create person;
 ```bash
 {
 "name": "Dmitriy",
@@ -88,9 +88,10 @@ make
 ```bash
 .
 ├── Dockerfile
+├── Dockerfile.debug
 ├── Makefile
 ├── README.md
-├── TASK.md
+├── bin
 ├── cmd
 │   └── app
 │       └── main.go
@@ -98,6 +99,7 @@ make
 │   └── main.yml
 ├── cover.html
 ├── cover.out
+├── docker-compose.debug.yml
 ├── docker-compose.yml
 ├── docs
 │   ├── docs.go
@@ -118,15 +120,16 @@ make
 │   │   ├── errors.go
 │   │   └── person.go
 │   ├── repository
-│   │   ├── persons_create.go
-│   │   ├── persons_create_test.go
-│   │   ├── persons_delete.go
-│   │   ├── persons_delete_test.go
-│   │   ├── persons_get.go
-│   │   ├── persons_get_test.go
-│   │   ├── persons_update.go
-│   │   ├── persons_update_test.go
-│   │   └── repository.go
+│   │   └── db
+│   │       ├── persons_create.go
+│   │       ├── persons_create_test.go
+│   │       ├── persons_delete.go
+│   │       ├── persons_delete_test.go
+│   │       ├── persons_get.go
+│   │       ├── persons_get_test.go
+│   │       ├── persons_update.go
+│   │       ├── persons_update_test.go
+│   │       └── repository.go
 │   ├── server
 │   │   └── server.go
 │   ├── service
@@ -242,7 +245,7 @@ curl -X 'DELETE' \
 }
 ```
 
-#### 5. Get all notes
+#### 5. Get all persons
 * Request example:
 ```shell
 curl -X 'GET' \
