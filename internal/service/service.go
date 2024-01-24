@@ -19,7 +19,7 @@ type Repository interface {
 type Generator interface {
 	GenerateAge(ctx context.Context, name string) (int, error)
 	GenerateGender(ctx context.Context, name string) (string, error)
-	GenerateNationalize(ctx context.Context, name string) (string, error)
+	GenerateNationalize(ctx context.Context, name string) ([]entity.Nationality, error)
 }
 
 type Service struct {

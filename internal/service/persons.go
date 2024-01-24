@@ -44,7 +44,7 @@ func (s *Service) CreatePerson(ctx context.Context, person entity.Person) (int, 
 			var err error
 			person.Nationalize, err = s.gen.GenerateNationalize(ctx, person.Name)
 			logger.DebugKV(ctx, "generate nationalize", "layer", layer, "nationalize", person.Nationalize, "err", err)
-			if err != nil {
+			if err != nil || person.Nationalize == nil {
 				errChan <- entity.ErrInvalidInput
 			}
 		}()

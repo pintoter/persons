@@ -39,27 +39,42 @@ func Test_Create(t *testing.T) {
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedExec := "INSERT INTO persons (name,surname,patronymic,age,gender,nationalize) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
-				mock.ExpectQuery(regexp.QuoteMeta(expectedExec)).
+				expectedExecInPerson := "INSERT INTO person (name,surname,patronymic,age,gender) VALUES ($1,$2,$3,$4,$5) RETURNING id"
+				mock.ExpectQuery(regexp.QuoteMeta(expectedExecInPerson)).
 					WithArgs(
 						args.person.Name,
 						args.person.Surname,
 						args.person.Patronymic,
 						args.person.Age,
 						args.person.Gender,
-						args.person.Nationalize,
 					).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+				expectedExecInNationality := "INSERT INTO person_nationality (person_id,nationalize,probability) VALUES ($1,$2,$3)"
+
+				for _, nationality := range args.person.Nationalize {
+					mock.ExpectQuery(regexp.QuoteMeta(expectedExecInNationality)).
+						WithArgs(1, nationality.Country, nationality.Probability)
+				}
 
 				mock.ExpectCommit()
 			},
 			args: args{
 				person: entity.Person{
-					Name:        "name",
-					Surname:     "surname",
-					Patronymic:  "patronymic",
-					Age:         18,
-					Gender:      "male",
-					Nationalize: "UA",
+					Name:       "name",
+					Surname:    "surname",
+					Patronymic: "patronymic",
+					Age:        18,
+					Gender:     "male",
+					Nationalize: []entity.Nationality{
+						{
+							Country:     "RU",
+							Probability: 0.02,
+						},
+						{
+							Country:     "GE",
+							Probability: 0.2,
+						},
+					},
 				},
 			},
 			wantId: 1,
@@ -69,7 +84,7 @@ func Test_Create(t *testing.T) {
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedExec := "INSERT INTO persons (name,surname,patronymic,age,gender,nationalize) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
+				expectedExec := "INSERT INTO person (name,surname,patronymic,age,gender) VALUES ($1,$2,$3,$4,$5) RETURNING id"
 				mock.ExpectQuery(regexp.QuoteMeta(expectedExec)).
 					WithArgs(
 						args.person.Name,
@@ -77,18 +92,33 @@ func Test_Create(t *testing.T) {
 						args.person.Patronymic,
 						args.person.Age,
 						args.person.Gender,
-						args.person.Nationalize,
 					).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+				expectedExecInNationality := "INSERT INTO person_nationality (person_id,nationalize,probability) VALUES ($1,$2,$3)"
+
+				for _, nationality := range args.person.Nationalize {
+					mock.ExpectQuery(regexp.QuoteMeta(expectedExecInNationality)).
+						WithArgs(1, nationality.Country, nationality.Probability)
+				}
 
 				mock.ExpectCommit()
 			},
 			args: args{
 				person: entity.Person{
-					Name:        "name",
-					Surname:     "surname",
-					Age:         18,
-					Gender:      "male",
-					Nationalize: "UA",
+					Name:    "name",
+					Surname: "surname",
+					Age:     18,
+					Gender:  "male",
+					Nationalize: []entity.Nationality{
+						{
+							Country:     "RU",
+							Probability: 0.02,
+						},
+						{
+							Country:     "GE",
+							Probability: 0.2,
+						},
+					},
 				},
 			},
 			wantId: 1,
@@ -98,7 +128,7 @@ func Test_Create(t *testing.T) {
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedExec := "INSERT INTO persons (name,surname,patronymic,age,gender,nationalize) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id"
+				expectedExec := "INSERT INTO person (name,surname,patronymic,age,gender) VALUES ($1,$2,$3,$4,$5) RETURNING id"
 				mock.ExpectQuery(regexp.QuoteMeta(expectedExec)).
 					WithArgs(
 						args.person.Name,
@@ -106,18 +136,26 @@ func Test_Create(t *testing.T) {
 						args.person.Patronymic,
 						args.person.Age,
 						args.person.Gender,
-						args.person.Nationalize,
 					).WillReturnError(errors.New("some error"))
 
 				mock.ExpectRollback()
 			},
 			args: args{
 				person: entity.Person{
-					Surname:     "surname",
-					Patronymic:  "patronymic",
-					Age:         18,
-					Gender:      "male",
-					Nationalize: "UA",
+					Name:    "name",
+					Surname: "surname",
+					Age:     18,
+					Gender:  "male",
+					Nationalize: []entity.Nationality{
+						{
+							Country:     "RU",
+							Probability: 0.02,
+						},
+						{
+							Country:     "GE",
+							Probability: 0.2,
+						},
+					},
 				},
 			},
 			wantErr: true,

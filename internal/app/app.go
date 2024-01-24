@@ -91,7 +91,7 @@ func initLogger(ctx context.Context, cfg *config.Config) (syncFn func()) {
 		zap.NewAtomicLevelAt(loggingLevel),
 	)
 
-	notSuggaredLogger := zap.New(consoleCore, zap.AddCaller())
+	notSuggaredLogger := zap.New(consoleCore)
 
 	sugarLogger := notSuggaredLogger.Sugar()
 	logger.SetLogger(sugarLogger.With(

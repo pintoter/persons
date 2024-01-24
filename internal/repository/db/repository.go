@@ -5,7 +5,8 @@ import (
 )
 
 const (
-	persons = "persons"
+	personTable      = "person"
+	nationalityTable = "person_nationality"
 )
 
 type DBRepo struct {

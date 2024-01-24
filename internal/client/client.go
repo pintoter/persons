@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/pintoter/persons/internal/entity"
 )
 
 const (
@@ -71,28 +73,26 @@ func (c *Client) GenerateGender(ctx context.Context, name string) (string, error
 }
 
 type getNationalizeContract struct {
-	Country []struct {
-		CountryId string `json:"country_id"`
-	} `json:"country"`
+	Country []entity.Nationality `json:"country"`
 }
 
-func (c *Client) GenerateNationalize(ctx context.Context, name string) (string, error) {
+func (c *Client) GenerateNationalize(ctx context.Context, name string) ([]entity.Nationality, error) {
 	data, err := c.requestExecutor(ctx, fmt.Sprintf(nationalizeURL+pathParamName, name))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	contract := new(getNationalizeContract)
-	err = json.Unmarshal(data, contract)
+	err = json.Unmarshal(data, &contract)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if len(contract.Country) == 0 {
-		return "", err
+		return nil, err
 	}
 
-	return contract.Country[0].CountryId, nil
+	return contract.Country, nil
 }
 
 func (c *Client) requestExecutor(ctx context.Context, url string) ([]byte, error) {

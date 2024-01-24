@@ -10,9 +10,9 @@ import (
 )
 
 func createBuilder(person entity.Person) (string, []interface{}, error) {
-	builder := sq.Insert(persons).
-		Columns("name", "surname", "patronymic", "age", "gender", "nationalize").
-		Values(person.Name, person.Surname, person.Patronymic, person.Age, person.Gender, person.Nationalize).
+	builder := sq.Insert(personTable).
+		Columns("name", "surname", "patronymic", "age", "gender").
+		Values(person.Name, person.Surname, person.Patronymic, person.Age, person.Gender).
 		Suffix("RETURNING id").
 		PlaceholderFormat(sq.Dollar)
 
@@ -42,6 +42,19 @@ func (r *DBRepo) Create(ctx context.Context, person entity.Person) (int, error) 
 	logger.DebugKV(ctx, "insert in db", "layer", logMethod, "err", err)
 	if err != nil {
 		return 0, err
+	}
+
+	stmt, err := tx.Prepare("INSERT INTO person_nationality (person_id, nationalize, probability) VALUES ($1, $2, $3)")
+	if err != nil {
+		return 0, err
+	}
+	defer stmt.Close()
+
+	for _, nationalize := range person.Nationalize {
+		_, err := stmt.Exec(id, nationalize.Country, nationalize.Probability)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return id, tx.Commit()

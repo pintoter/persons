@@ -9,34 +9,27 @@ import (
 )
 
 func updateBuilder(id int, data *service.UpdateParams) (string, []interface{}, error) {
-	builder := sq.Update(persons).
+	builder := sq.Update(personTable).
 		Where(sq.Eq{"id": id}).
 		PlaceholderFormat(sq.Dollar)
-
 	if data.Name != nil {
 		builder = builder.Set("name", *data.Name)
 	}
-
 	if data.Surname != nil {
 		builder = builder.Set("surname", *data.Surname)
 	}
-
 	if data.Patronymic != nil {
 		builder = builder.Set("patronymic", *data.Patronymic)
 	}
-
 	if data.Age != nil {
 		builder = builder.Set("age", *data.Age)
 	}
-
 	if data.Gender != nil {
 		builder = builder.Set("gender", *data.Gender)
 	}
-
 	if data.Nationalize != nil {
 		builder = builder.Set("nationalize", *data.Nationalize)
 	}
-
 	return builder.ToSql()
 }
 

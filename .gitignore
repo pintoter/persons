@@ -13,3 +13,6 @@
 # Coverage
 cover.html
 cover.out
+
+# Trasher
+.trash
