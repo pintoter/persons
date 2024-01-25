@@ -21,15 +21,6 @@ func updateBuilder(id int, data *service.UpdateParams) (string, []interface{}, e
 	if data.Patronymic != nil {
 		builder = builder.Set("patronymic", *data.Patronymic)
 	}
-	if data.Age != nil {
-		builder = builder.Set("age", *data.Age)
-	}
-	if data.Gender != nil {
-		builder = builder.Set("gender", *data.Gender)
-	}
-	if data.Nationalize != nil {
-		builder = builder.Set("nationalize", *data.Nationalize)
-	}
 	return builder.ToSql()
 }
 

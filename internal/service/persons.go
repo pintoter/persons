@@ -110,9 +110,6 @@ type UpdateParams struct {
 	Name        *string
 	Surname     *string
 	Patronymic  *string
-	Age         *int
-	Gender      *string
-	Nationalize *string
 }
 
 func (s *Service) Update(ctx context.Context, id int, params *UpdateParams) error {

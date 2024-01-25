@@ -78,7 +78,6 @@ func getPersonsBuilder(data *service.GetFilters) (string, []interface{}, error) 
 	builder := sq.Select("person.id", "person.name", "person.surname", "person.patronymic", "person.age", "person.gender", "n.nationalize, n.probability").
 		From(personTable).
 		Join("person_nationality n ON n.person_id = person.id").
-		OrderBy("id ASC").
 		PlaceholderFormat(sq.Dollar)
 
 	if data.Name != nil {

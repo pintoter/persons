@@ -40,8 +40,13 @@ func Test_Delete(t *testing.T) {
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedQuery := "DELETE FROM persons WHERE id = $1"
-				mock.ExpectExec(regexp.QuoteMeta(expectedQuery)).
+				expectedPNQuery := "DELETE FROM person_nationality WHERE person_id = $1"
+				mock.ExpectExec(regexp.QuoteMeta(expectedPNQuery)).
+					WithArgs(args.id).
+					WillReturnResult(sqlmock.NewResult(0, 1))
+
+				expectedPQuery := "DELETE FROM person WHERE id = $1"
+				mock.ExpectExec(regexp.QuoteMeta(expectedPQuery)).
 					WithArgs(args.id).
 					WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -56,8 +61,30 @@ func Test_Delete(t *testing.T) {
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedQuery := "DELETE FROM persons WHERE id = $1"
+				expectedPNQuery := "DELETE FROM person_nationality WHERE person_id = $1"
+				mock.ExpectExec(regexp.QuoteMeta(expectedPNQuery)).
+					WithArgs(args.id).
+					WillReturnResult(sqlmock.NewResult(0, 1))
+
+				expectedQuery := "DELETE FROM person WHERE id = $1"
 				mock.ExpectExec(regexp.QuoteMeta(expectedQuery)).
+					WithArgs(args.id).
+					WillReturnError(errors.New("new error"))
+
+				mock.ExpectRollback()
+			},
+			wantErr: true,
+		},
+		{
+			name: "FailedOnPersonNationality",
+			args: args{
+				id: 100,
+			},
+			mockBehavior: func(args args) {
+				mock.ExpectBegin()
+
+				expectedPNQuery := "DELETE FROM person_nationality WHERE person_id = $1"
+				mock.ExpectExec(regexp.QuoteMeta(expectedPNQuery)).
 					WithArgs(args.id).
 					WillReturnError(errors.New("new error"))
 

@@ -53,7 +53,7 @@ func Test_Create(t *testing.T) {
 
 				for _, nationality := range args.person.Nationalize {
 					mock.ExpectQuery(regexp.QuoteMeta(expectedExecInNationality)).
-						WithArgs(1, nationality.Country, nationality.Probability)
+						WithArgs(1, nationality.Country, nationality.Probability).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 				}
 
 				mock.ExpectCommit()
@@ -95,10 +95,9 @@ func Test_Create(t *testing.T) {
 					).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
 				expectedExecInNationality := "INSERT INTO person_nationality (person_id,nationalize,probability) VALUES ($1,$2,$3)"
-
 				for _, nationality := range args.person.Nationalize {
 					mock.ExpectQuery(regexp.QuoteMeta(expectedExecInNationality)).
-						WithArgs(1, nationality.Country, nationality.Probability)
+						WithArgs(1, nationality.Country, nationality.Probability).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 				}
 
 				mock.ExpectCommit()

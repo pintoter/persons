@@ -44,14 +44,15 @@ func (r *DBRepo) Create(ctx context.Context, person entity.Person) (int, error) 
 		return 0, err
 	}
 
-	stmt, err := tx.Prepare("INSERT INTO person_nationality (person_id, nationalize, probability) VALUES ($1, $2, $3)")
-	if err != nil {
-		return 0, err
-	}
-	defer stmt.Close()
-
+	builder := sq.Insert(nationalityTable).Columns("person_id", "nationalize", "probability").PlaceholderFormat(sq.Dollar)
 	for _, nationalize := range person.Nationalize {
-		_, err := stmt.Exec(id, nationalize.Country, nationalize.Probability)
+		nationalizeBuilder := builder.Values(id, nationalize.Country, nationalize.Probability)
+		query, args, err := nationalizeBuilder.ToSql()
+		if err != nil {
+			return 0, err
+		}
+
+		_, err = tx.QueryContext(ctx, query, args...)
 		if err != nil {
 			return 0, err
 		}

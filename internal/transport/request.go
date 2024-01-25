@@ -101,13 +101,10 @@ func (p *getPersonsRequest) Set(r *http.Request) error {
 }
 
 type updatePersonInput struct {
-	ID          int    `json:"-"`
-	Name        string `json:"name,omitempty"`
-	Surname     string `json:"surname,omitempty"`
-	Patronymic  string `json:"patronymic,omitempty"`
-	Age         int    `json:"age,omitempty"`
-	Gender      string `json:"gender,omitempty"`
-	Nationalize string `json:"nationalize,omitempty"`
+	ID         int    `json:"-"`
+	Name       string `json:"name,omitempty"`
+	Surname    string `json:"surname,omitempty"`
+	Patronymic string `json:"patronymic,omitempty"`
 }
 
 func (p *updatePersonInput) Set(r *http.Request) error {
@@ -121,7 +118,7 @@ func (p *updatePersonInput) Set(r *http.Request) error {
 		return entity.ErrInvalidInput
 	}
 
-	if p.Name == "" && p.Surname == "" && p.Age <= 0 && p.Gender == "" && p.Nationalize == "" {
+	if p.Name == "" && p.Surname == "" && p.Patronymic == "" {
 		return entity.ErrInvalidInput
 	}
 	return nil

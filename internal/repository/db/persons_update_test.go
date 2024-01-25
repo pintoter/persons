@@ -39,15 +39,15 @@ func Test_Update(t *testing.T) {
 			args: args{
 				id: 1,
 				params: &service.UpdateParams{
-					Age: GetAddress[int](5),
+					Name: GetAddress[string]("Vlad"),
 				},
 			},
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedQuery := "UPDATE persons SET age = $1 WHERE id = $2"
+				expectedQuery := "UPDATE person SET name = $1 WHERE id = $2"
 				mock.ExpectExec(regexp.QuoteMeta(expectedQuery)).
-					WithArgs(args.params.Age, args.id).
+					WithArgs(args.params.Name, args.id).
 					WillReturnResult(sqlmock.NewResult(0, 1))
 
 				mock.ExpectCommit()
@@ -65,7 +65,7 @@ func Test_Update(t *testing.T) {
 			mockBehavior: func(args args) {
 				mock.ExpectBegin()
 
-				expectedQuery := "UPDATE persons SET surname = $1 WHERE id = $2"
+				expectedQuery := "UPDATE person SET surname = $1 WHERE id = $2"
 				mock.ExpectExec(regexp.QuoteMeta(expectedQuery)).
 					WithArgs(args.params.Surname, args.id).
 					WillReturnError(errors.New("some error"))

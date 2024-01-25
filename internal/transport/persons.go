@@ -163,9 +163,6 @@ func (h *Handler) updatePerson(w http.ResponseWriter, r *http.Request) {
 		Name:        &input.Name,
 		Surname:     &input.Surname,
 		Patronymic:  &input.Patronymic,
-		Age:         &input.Age,
-		Gender:      &input.Gender,
-		Nationalize: &input.Nationalize,
 	}
 
 	err = h.service.Update(r.Context(), input.ID, data)
