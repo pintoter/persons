@@ -102,6 +102,7 @@ func getPersonsBuilder(data *service.GetFilters) (string, []interface{}, error) 
 	return builder.ToSql()
 }
 
+/* FIX ME */
 func (r *DBRepo) GetPersons(ctx context.Context, data *service.GetFilters) ([]entity.Person, error) {
 	logMethod := "repository.GetPersons"
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{

@@ -48,15 +48,19 @@ func (r *DBRepo) Create(ctx context.Context, person entity.Person) (int, error) 
 	for _, nationalize := range person.Nationalize {
 		nationalizeBuilder := builder.Values(id, nationalize.Country, nationalize.Probability)
 		query, args, err := nationalizeBuilder.ToSql()
+		logger.DebugKV(ctx, "create nationalize builder", "layer", logMethod, "query", query, "args", args, "err", err)
 		if err != nil {
+			logger.DebugKV(ctx, "insert in db", "layer", logMethod, "err", err)
 			return 0, err
 		}
 
 		_, err = tx.QueryContext(ctx, query, args...)
 		if err != nil {
+			logger.DebugKV(ctx, "insert in db", "layer", logMethod, "err", err)
 			return 0, err
 		}
 	}
 
+	logger.DebugKV(ctx, "end of Creating person", "layer", logMethod)
 	return id, tx.Commit()
 }
