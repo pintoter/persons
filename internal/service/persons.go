@@ -71,9 +71,12 @@ func (s *Service) CreatePerson(ctx context.Context, person entity.Person) (int, 
 }
 
 func (s *Service) GetPerson(ctx context.Context, id int) (entity.Person, error) {
+	layer := "service.GetPerson"
+
 	person, err := s.repo.GetPerson(ctx, id)
+	logger.DebugKV(ctx, "result get person", "layer", layer, "person", person, "err", err)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) || errors.Is(err, entity.ErrPersonNotExists) {
 			return entity.Person{}, entity.ErrPersonNotExists
 		} else {
 			return entity.Person{}, entity.ErrInternalService
@@ -107,9 +110,9 @@ func (s *Service) GetPersons(ctx context.Context, filters *GetFilters) ([]entity
 }
 
 type UpdateParams struct {
-	Name        *string
-	Surname     *string
-	Patronymic  *string
+	Name       *string
+	Surname    *string
+	Patronymic *string
 }
 
 func (s *Service) Update(ctx context.Context, id int, params *UpdateParams) error {

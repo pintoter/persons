@@ -64,15 +64,15 @@ git clone https://github.com/pintoter/persons.git
 1. **Create .env file with filename ".env" in the project root and setting up environment your own variables:**
 ```dotenv
 # Database
-export DB_USER = "user"
-export DB_PASSWORD = "123456"
-export DB_HOST = "postgres"
-export DB_PORT = 5432
-export DB_NAME = "dbname"
-export DB_SSLMODE = "disable"
+DB_USER = "user"
+DB_PASSWORD = "123456"
+DB_HOST = "postgres"
+DB_PORT = 5432
+DB_NAME = "dbname"
+DB_SSLMODE = "disable"
 
 # Local database
-export LOCAL_DB_PORT = 5432
+LOCAL_DB_PORT = 5432
 ```
 > **Hint:**
 if you are running the project using Docker, set `DB_HOST` to "**postgres**" (as the service name of Postgres in the docker-compose).
@@ -194,19 +194,41 @@ curl -X 'POST' \
 * Request example:
 ```shell
 curl -X 'GET' \
-  'http://localhost:8080/api/v1/persons/1' \
+  'http://localhost:8080/api/v1/persons/30' \
   -H 'accept: application/json'
 ```
 * Response example:
 ```json
 {
-  "note": {
+  "person": {
+    "id": 30,
     "name": "Ivan",
-    "surname": "Ivanov",
-    "patronymic": "Ivanovich",
-    "age": "not_done",
+    "surname": "Sergeev",
+    "patronymic": "Petrovich",
+    "age": 55,
     "gender": "male",
-    "nationalize": "RU"
+    "nationalize": [
+      {
+        "country_id": "HR",
+        "probability": 0.112
+      },
+      {
+        "country_id": "RS",
+        "probability": 0.101
+      },
+      {
+        "country_id": "BG",
+        "probability": 0.073
+      },
+      {
+        "country_id": "SK",
+        "probability": 0.052
+      },
+      {
+        "country_id": "UA",
+        "probability": 0.048
+      }
+    ]
   }
 }
 ```
