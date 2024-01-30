@@ -163,10 +163,10 @@ func (mr *MockGeneratorMockRecorder) GenerateGender(ctx, name interface{}) *gomo
 }
 
 // GenerateNationalize mocks base method.
-func (m *MockGenerator) GenerateNationalize(ctx context.Context, name string) (string, error) {
+func (m *MockGenerator) GenerateNationalize(ctx context.Context, name string) ([]entity.Nationality, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateNationalize", ctx, name)
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].([]entity.Nationality)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

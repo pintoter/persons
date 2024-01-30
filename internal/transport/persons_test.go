@@ -37,17 +37,28 @@ func Test_CreatePersonHandler(t *testing.T) {
 					"patronymic": "Ivanovich"
 				}`,
 			inputPerson: entity.Person{
-				Name:        "Ivan",
-				Surname:     "Ivanov",
-				Patronymic:  "Ivanovich",
-				Age:         18,
-				Gender:      "male",
-				Nationalize: "RU",
+				Name:       "Ivan",
+				Surname:    "Ivanov",
+				Patronymic: "Ivanovich",
+				Age:        18,
+				Gender:     "male",
+				Nationalize: []entity.Nationality{
+					{
+						Country:     "RU",
+						Probability: 0.1,
+					},
+					{
+						Country:     "KZ",
+						Probability: 0.05,
+					},
+				},
 			},
 			mockBehavior: func(r *mock_service.MockRepository, g *mock_service.MockGenerator, person entity.Person) {
 				g.EXPECT().GenerateAge(gomock.Any(), person.Name).Times(1).Return(18, nil)
 				g.EXPECT().GenerateGender(gomock.Any(), person.Name).Times(1).Return("male", nil)
-				g.EXPECT().GenerateNationalize(gomock.Any(), person.Name).Times(1).Return("RU", nil)
+				g.EXPECT().
+					GenerateNationalize(gomock.Any(), person.Name).Times(1).
+					Return([]entity.Nationality{{Country: "RU", Probability: 0.1}, {Country: "KZ", Probability: 0.05}}, nil)
 				r.EXPECT().Create(gomock.Any(), person).Return(1, nil)
 			},
 			expectedStatusCode: http.StatusCreated,
@@ -98,25 +109,43 @@ func Test_GetPersonHandler(t *testing.T) {
 			inputId: 1,
 			mockBehavior: func(s *mock_service.MockRepository, g *mock_service.MockGenerator, id int) {
 				s.EXPECT().GetPerson(gomock.Any(), id).Return(entity.Person{
-					ID:          1,
-					Name:        "name",
-					Surname:     "surname",
-					Patronymic:  "patronymic",
-					Age:         18,
-					Gender:      "male",
-					Nationalize: "RU",
+					ID:         1,
+					Name:       "name",
+					Surname:    "surname",
+					Patronymic: "patronymic",
+					Age:        18,
+					Gender:     "male",
+					Nationalize: []entity.Nationality{
+						{
+							Country:     "RU",
+							Probability: 0.1,
+						},
+						{
+							Country:     "KZ",
+							Probability: 0.05,
+						},
+					},
 				}, nil)
 			},
 			expectedStatusCode: http.StatusOK,
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(getPersonResponse{Person: entity.Person{
-					ID:          1,
-					Name:        "name",
-					Surname:     "surname",
-					Patronymic:  "patronymic",
-					Age:         18,
-					Gender:      "male",
-					Nationalize: "RU",
+					ID:         1,
+					Name:       "name",
+					Surname:    "surname",
+					Patronymic: "patronymic",
+					Age:        18,
+					Gender:     "male",
+					Nationalize: []entity.Nationality{
+						{
+							Country:     "RU",
+							Probability: 0.1,
+						},
+						{
+							Country:     "KZ",
+							Probability: 0.05,
+						},
+					},
 				}}, "", "    ")
 				return string(resp)
 			}(),
@@ -205,21 +234,39 @@ func Test_GetPersonsHandler(t *testing.T) {
 				s.EXPECT().GetPersons(gomock.Any(), gomock.Any()).Return(
 					[]entity.Person{
 						{
-							ID:          1,
-							Name:        "name",
-							Surname:     "surname",
-							Patronymic:  "patronymic",
-							Age:         18,
-							Gender:      "male",
-							Nationalize: "RU",
+							ID:         1,
+							Name:       "name",
+							Surname:    "surname",
+							Patronymic: "patronymic",
+							Age:        18,
+							Gender:     "male",
+							Nationalize: []entity.Nationality{
+								{
+									Country:     "RU",
+									Probability: 0.1,
+								},
+								{
+									Country:     "KZ",
+									Probability: 0.05,
+								},
+							},
 						}, {
-							ID:          2,
-							Name:        "name1",
-							Surname:     "surname1",
-							Patronymic:  "patronymic1",
-							Age:         19,
-							Gender:      "male",
-							Nationalize: "RU",
+							ID:         2,
+							Name:       "name1",
+							Surname:    "surname1",
+							Patronymic: "patronymic1",
+							Age:        19,
+							Gender:     "male",
+							Nationalize: []entity.Nationality{
+								{
+									Country:     "RU",
+									Probability: 0.1,
+								},
+								{
+									Country:     "KZ",
+									Probability: 0.05,
+								},
+							},
 						},
 					},
 					nil)
@@ -228,21 +275,39 @@ func Test_GetPersonsHandler(t *testing.T) {
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(getPersonsResponse{Persons: []entity.Person{
 					{
-						ID:          1,
-						Name:        "name",
-						Surname:     "surname",
-						Patronymic:  "patronymic",
-						Age:         18,
-						Gender:      "male",
-						Nationalize: "RU",
+						ID:         1,
+						Name:       "name",
+						Surname:    "surname",
+						Patronymic: "patronymic",
+						Age:        18,
+						Gender:     "male",
+						Nationalize: []entity.Nationality{
+							{
+								Country:     "RU",
+								Probability: 0.1,
+							},
+							{
+								Country:     "KZ",
+								Probability: 0.05,
+							},
+						},
 					}, {
-						ID:          2,
-						Name:        "name1",
-						Surname:     "surname1",
-						Patronymic:  "patronymic1",
-						Age:         19,
-						Gender:      "male",
-						Nationalize: "RU",
+						ID:         2,
+						Name:       "name1",
+						Surname:    "surname1",
+						Patronymic: "patronymic1",
+						Age:        19,
+						Gender:     "male",
+						Nationalize: []entity.Nationality{
+							{
+								Country:     "RU",
+								Probability: 0.1,
+							},
+							{
+								Country:     "KZ",
+								Probability: 0.05,
+							},
+						},
 					},
 				}}, "", "    ")
 				return string(resp)
@@ -255,21 +320,39 @@ func Test_GetPersonsHandler(t *testing.T) {
 				s.EXPECT().GetPersons(gomock.Any(), gomock.Any()).Return(
 					[]entity.Person{
 						{
-							ID:          1,
-							Name:        "name",
-							Surname:     "surname",
-							Patronymic:  "patronymic",
-							Age:         18,
-							Gender:      "male",
-							Nationalize: "RU",
+							ID:         1,
+							Name:       "name",
+							Surname:    "surname",
+							Patronymic: "patronymic",
+							Age:        18,
+							Gender:     "male",
+							Nationalize: []entity.Nationality{
+								{
+									Country:     "RU",
+									Probability: 0.1,
+								},
+								{
+									Country:     "KZ",
+									Probability: 0.05,
+								},
+							},
 						}, {
-							ID:          2,
-							Name:        "name",
-							Surname:     "surname1",
-							Patronymic:  "patronymic1",
-							Age:         19,
-							Gender:      "male",
-							Nationalize: "RU",
+							ID:         2,
+							Name:       "name",
+							Surname:    "surname1",
+							Patronymic: "patronymic1",
+							Age:        19,
+							Gender:     "male",
+							Nationalize: []entity.Nationality{
+								{
+									Country:     "RU",
+									Probability: 0.1,
+								},
+								{
+									Country:     "KZ",
+									Probability: 0.05,
+								},
+							},
 						},
 					},
 					nil)
@@ -278,21 +361,39 @@ func Test_GetPersonsHandler(t *testing.T) {
 			expectedResponseBody: func() string {
 				resp, _ := json.MarshalIndent(getPersonsResponse{Persons: []entity.Person{
 					{
-						ID:          1,
-						Name:        "name",
-						Surname:     "surname",
-						Patronymic:  "patronymic",
-						Age:         18,
-						Gender:      "male",
-						Nationalize: "RU",
+						ID:         1,
+						Name:       "name",
+						Surname:    "surname",
+						Patronymic: "patronymic",
+						Age:        18,
+						Gender:     "male",
+						Nationalize: []entity.Nationality{
+							{
+								Country:     "RU",
+								Probability: 0.1,
+							},
+							{
+								Country:     "KZ",
+								Probability: 0.05,
+							},
+						},
 					}, {
-						ID:          2,
-						Name:        "name",
-						Surname:     "surname1",
-						Patronymic:  "patronymic1",
-						Age:         19,
-						Gender:      "male",
-						Nationalize: "RU",
+						ID:         2,
+						Name:       "name",
+						Surname:    "surname1",
+						Patronymic: "patronymic1",
+						Age:        19,
+						Gender:     "male",
+						Nationalize: []entity.Nationality{
+							{
+								Country:     "RU",
+								Probability: 0.1,
+							},
+							{
+								Country:     "KZ",
+								Probability: 0.05,
+							},
+						},
 					},
 				}}, "", "    ")
 				return string(resp)

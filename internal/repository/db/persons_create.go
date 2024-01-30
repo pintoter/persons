@@ -46,21 +46,21 @@ func (r *DBRepo) Create(ctx context.Context, person entity.Person) (int, error) 
 
 	builder := sq.Insert(nationalityTable).Columns("person_id", "nationalize", "probability").PlaceholderFormat(sq.Dollar)
 	for _, nationalize := range person.Nationalize {
-		nationalizeBuilder := builder.Values(id, nationalize.Country, nationalize.Probability)
-		query, args, err := nationalizeBuilder.ToSql()
-		logger.DebugKV(ctx, "create nationalize builder", "layer", logMethod, "query", query, "args", args, "err", err)
-		if err != nil {
-			logger.DebugKV(ctx, "insert in db", "layer", logMethod, "err", err)
-			return 0, err
-		}
-
-		_, err = tx.QueryContext(ctx, query, args...)
-		if err != nil {
-			logger.DebugKV(ctx, "insert in db", "layer", logMethod, "err", err)
-			return 0, err
-		}
+		builder = builder.Values(id, nationalize.Country, nationalize.Probability)
+	}
+	query1, args1, err := builder.ToSql()
+	logger.DebugKV(ctx, "create nationalize builder", "layer", logMethod, "query", query1, "args", args1, "err", err)
+	if err != nil {
+		logger.DebugKV(ctx, "insert in db", "layer", logMethod, "err", err)
+		return 0, err
 	}
 
-	logger.DebugKV(ctx, "end of Creating person", "layer", logMethod)
+	_, err = tx.ExecContext(ctx, query, args...)
+	logger.DebugKV(ctx, "insert in db", "layer", logMethod, "err", err)
+	if err != nil {
+		return 0, err
+	}
+
+	logger.DebugKV(ctx, "end of creating person", "layer", logMethod)
 	return id, tx.Commit()
 }
