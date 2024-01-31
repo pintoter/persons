@@ -13,10 +13,11 @@ import (
 func (s *Service) CreatePerson(ctx context.Context, person entity.Person) (int, error) {
 	layer := "service.Create"
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	var wg sync.WaitGroup
-
-	errChan := make(chan error, 1)
-
+	errChan := make(chan error)
 	go func() {
 		wg.Add(3)
 		go func() {
@@ -54,15 +55,12 @@ func (s *Service) CreatePerson(ctx context.Context, person entity.Person) (int, 
 	}()
 
 	for err := range errChan {
-		logger.DebugKV(ctx, "read errchan", "layer", layer, "err", err)
 		if err != nil {
 			return 0, err
 		}
 	}
 
-	logger.DebugKV(ctx, "person create for inserting DB", "layer", layer, "person", person)
 	id, err := s.repo.Create(ctx, person)
-	logger.DebugKV(ctx, "result of inserting DB", "layer", layer, "id", id, "err", err)
 	if err != nil {
 		return 0, err
 	}

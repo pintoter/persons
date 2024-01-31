@@ -159,13 +159,20 @@ func (h *Handler) updatePerson(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := &service.UpdateParams{
-		Name:        &input.Name,
-		Surname:     &input.Surname,
-		Patronymic:  &input.Patronymic,
+	var data service.UpdateParams
+	if input.Name != "" {
+		data.Name = &input.Name
 	}
 
-	err = h.service.Update(r.Context(), input.ID, data)
+	if input.Surname != "" {
+		data.Surname = &input.Surname
+	}
+
+	if input.Patronymic != "" {
+		data.Patronymic = &input.Patronymic
+	}
+
+	err = h.service.Update(r.Context(), input.ID, &data)
 	if err != nil {
 		if errors.Is(err, entity.ErrPersonNotExists) {
 			renderJSON(w, r, http.StatusBadRequest, errorResponse{entity.ErrPersonNotExists.Error()})

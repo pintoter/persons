@@ -6,6 +6,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pintoter/persons/internal/service"
+	"github.com/pintoter/persons/pkg/logger"
 )
 
 func updateBuilder(id int, data *service.UpdateParams) (string, []interface{}, error) {
@@ -25,6 +26,8 @@ func updateBuilder(id int, data *service.UpdateParams) (string, []interface{}, e
 }
 
 func (r *DBRepo) Update(ctx context.Context, id int, params *service.UpdateParams) error {
+	logMethod := "repository.Update"
+	logger.DebugKV(ctx, "update start", "layer", logMethod, "params", params)
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted,
 		ReadOnly:  false,
@@ -35,6 +38,7 @@ func (r *DBRepo) Update(ctx context.Context, id int, params *service.UpdateParam
 	defer func() { _ = tx.Rollback() }()
 
 	query, args, err := updateBuilder(id, params)
+	logger.DebugKV(ctx, "update builder", "layer", logMethod, "query", query, "err", err)
 	if err != nil {
 		return err
 	}

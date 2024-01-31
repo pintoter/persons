@@ -74,7 +74,7 @@ func (r *DBRepo) GetPerson(ctx context.Context, id int) (entity.Person, error) {
 }
 
 func getPersonsBuilder(data *service.GetFilters) (string, []interface{}, error) {
-	builder := sq.Select("person.id", "person.name", "person.surname", "person.patronymic", "person.age", "person.gender", "n.nationalize, n.probability").
+	builder := sq.Select("person.id", "person.name", "person.surname", "person.patronymic", "person.age", "person.gender", "n.nationalize", "n.probability").
 		From(personTable).
 		Join("person_nationality n ON n.person_id = person.id").
 		PlaceholderFormat(sq.Dollar)
@@ -101,10 +101,9 @@ func getPersonsBuilder(data *service.GetFilters) (string, []interface{}, error) 
 	return builder.ToSql()
 }
 
-/* FIX ME */
 func (r *DBRepo) GetPersons(ctx context.Context, data *service.GetFilters) ([]entity.Person, error) {
 	logMethod := "repository.GetPersons"
-	
+
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{
 		Isolation: sql.LevelReadCommitted,
 		ReadOnly:  false,
@@ -125,29 +124,50 @@ func (r *DBRepo) GetPersons(ctx context.Context, data *service.GetFilters) ([]en
 	}
 	defer rows.Close()
 
+	areRowsExist := false
 	isIdScanned := make(map[int]struct{})
 	var persons []entity.Person
 	var count int
 	for rows.Next() {
-		var person entity.Person
+		var id, age int
+		var name, surname, patronymic, gender string
 		var nationalize string
 		var probability float64
 
-		err = rows.Scan(&person.ID, &person.Name, &person.Surname, &person.Patronymic, &person.Age, &person.Gender, &nationalize, &probability)
+		err = rows.Scan(&id, &name, &surname, &patronymic, &age, &gender, &nationalize, &probability)
 		if err != nil {
 			logger.DebugKV(ctx, "rows.Scan", "layer", logMethod, "err", err)
 			return nil, err
 		}
 
-		if _, ok := isIdScanned[person.ID]; !ok {
-			isIdScanned[person.ID] = struct{}{}
+		if id == 0 {
+			return nil, entity.ErrPersonNotExists
+		}
+
+		if _, ok := isIdScanned[id]; !ok {
+			isIdScanned[id] = struct{}{}
 			count++
-			persons = append(persons, person)
+			persons = append(persons, entity.Person{
+				ID:         id,
+				Name:       name,
+				Surname:    surname,
+				Patronymic: patronymic,
+				Gender:     gender,
+				Age:        age,
+			})
+			areRowsExist = true
 		}
 		persons[count-1].Nationalize = append(persons[count-1].Nationalize, entity.Nationality{Country: nationalize, Probability: probability})
-		logger.DebugKV(ctx, "rows.Scan", "layer", logMethod, "persons", persons)
 	}
 	logger.DebugKV(ctx, "result of repo.GetPersons", "layer", logMethod, "persons", persons)
+
+	if !areRowsExist {
+		return nil, entity.ErrPersonNotExists
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
 	return persons, tx.Commit()
 }
