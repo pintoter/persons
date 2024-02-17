@@ -1,14 +1,30 @@
 version: '3.9'
 
 services:
-  persons-app:
-    container_name: persons-app
+  command:
     build: 
-      dockerfile: Dockerfile
+      context: ./services/command
+      # dockerfile: ./services/command/Dockerfile
     env_file: 
       - .env
     ports:
-      - "8080:8080"
+      - "8080"
+    depends_on:
+      - postgres
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+    networks:
+      - persons-backend
+    restart: unless-stopped
+
+  query:
+    build:
+      context: ./services/query
+      # dockerfile: ./services/query/Dockerfile
+    env_file: 
+      - .env
+    ports:
+      - "8080"
     depends_on:
       - postgres
     environment:
@@ -18,7 +34,6 @@ services:
     restart: unless-stopped
 
   postgres:
-    container_name: persons-db
     image: postgres:latest
     hostname: postgres
     env_file: 
@@ -30,6 +45,21 @@ services:
     volumes:
       - pg-data:/var/lib/postgresql/data
     restart: on-failure
+    networks:
+      - persons-backend
+
+  nginx:
+    container_name: nginx
+    build:
+      context: ./nginx
+    ports:
+      - "8080:80"
+    depends_on:
+      - command
+      - query
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    restart: always
     networks:
       - persons-backend
 
